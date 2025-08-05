@@ -1,0 +1,23 @@
+GLOBAL FEATURE ANALYSIS SUMMARY
+==================================================
+
+Analysis of molecular datasets: QM8, QM9, HIV, and ToxCast
+Total datasets analyzed: 4
+
+DATASET COMPARISON TABLE:
+----------------------------------------------------------------------------------------------------
+Dataset         Samples  Nodes    Features  Min      Max      Mean     Std     
+----------------------------------------------------------------------------------------------------
+QM9             5000     34987    127       0.0000   1.0000   0.0500   0.2160  
+QM8             5000     35072    127       0.0000   1.0000   0.0501   0.2161  
+HIV             5000     112652   127       0.0000   2.0898   0.0517   0.2194  
+ToxCast         1125     21250    127       0.0000   2.0898   0.0514   0.2188  
+----------------------------------------------------------------------------------------------------
+
+OVERALL STATISTICS ACROSS ALL DATASETS:
+  Minimum of all minimums: 0.000000
+  Maximum of all maximums: 2.089800
+  Average of all means: 0.050812
+  Average of all standard deviations: 0.217554
+  Overall range: [0.000000, 2.089800]
+

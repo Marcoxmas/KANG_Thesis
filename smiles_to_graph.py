@@ -13,31 +13,25 @@ def one_hot(value, choices):
 def atom_features(atom):
     """Returns a rich atom feature vector."""
     features = []
-    # 1. Atom type (one-hot over 100 common elements, atomic number)
+    # 1. Atomic number (one-hot + unknown pad)
     atom_type_list = list(range(1, 101))  # Atomic numbers from 1 to 100
     features += one_hot(atom.GetAtomicNum(), atom_type_list)
 
-    # 2. Number of bonds (degree, one-hot 0-5)
+    # 2. Degree (# bonds, one-hot + pad, 0-5)
     features += one_hot(atom.GetDegree(), list(range(6)))
 
-    # 3. Formal charge (scaled integer, normalize to [-1, 1] assuming range -5 to 5)
-    formal_charge = float(atom.GetFormalCharge())
-    features.append(formal_charge / 5.0)  # Normalized
+    # 3. Formal charge (one-hot + pad, includes [-2, -1, 0, +1, +2])
+    formal_charge_list = [-2, -1, 0, 1, 2]
+    features += one_hot(atom.GetFormalCharge(), formal_charge_list)
 
-    # 4. Chirality (one-hot: R, S, None, other)
-    chirality = atom.GetChiralTag()
-    chirality_list = [
-        Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,   # R
-        Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,  # S
-        Chem.rdchem.ChiralType.CHI_UNSPECIFIED,      # None
-        Chem.rdchem.ChiralType.CHI_OTHER             # Other
-    ]
-    features += one_hot(chirality, chirality_list)
+    # 4. Chirality (one-hot + pad, based on RDKit ChiralType enum 0-3)
+    chirality_list = list(range(4))  # 0-3 range
+    features += one_hot(int(atom.GetChiralTag()), chirality_list)
 
-    # 5. Number of Hydrogens (one-hot 0-4)
+    # 5. Num Hs (one-hot + pad, 0-4 bonded Hs)
     features += one_hot(atom.GetTotalNumHs(includeNeighbors=True), list(range(5)))
 
-    # 6. Hybridization (one-hot: sp, sp2, sp3, etc.)
+    # 6. Hybridization (one-hot + pad, SP, SP2, SP3, etc.)
     hybridization_list = [
         Chem.rdchem.HybridizationType.SP,
         Chem.rdchem.HybridizationType.SP2,
@@ -47,38 +41,52 @@ def atom_features(atom):
     ]
     features += one_hot(atom.GetHybridization(), hybridization_list)
 
-    # 7. Aromaticity (boolean)
+    # 7. Aromaticity (binary, a.GetIsAromatic() → 0 or 1)
     features.append(int(atom.GetIsAromatic()))
 
-    # 8. Atomic mass (continuous, scaled by 0.01, then normalized to [0, 1] for common elements)
-    # Most common atomic masses are < 250, so scale by 0.01 and then divide by 2.5
-    atomic_mass = atom.GetMass() * 0.01
-    features.append(atomic_mass / 2.5)
+    # 8. Mass (scaled float, 0.01 * a.GetMass() — real-valued feature)
+    atomic_mass = 0.01 * atom.GetMass()
+    features.append(atomic_mass)
 
-    # Convert to tensor and clamp to [0, 1] for all features (except one-hot and chirality, which are already 0/1)
     feat_tensor = torch.tensor(features, dtype=torch.float)
-    #feat_tensor = torch.clamp(feat_tensor, 0.0, 1.0)
     return feat_tensor
 
 def bond_features(bond):
     """Returns a rich bond feature vector."""
+    features = []
+    
+    # 1. Nullity (binary, 1 bit) - set to 1 if bond is None
+    if bond is None:
+        features.append(1)
+        # For None bonds, pad with zeros for all other features
+        features += [0] * 4  # Bond type (4 bits)
+        features.append(0)   # Conjugated (1 bit)
+        features.append(0)   # In ring (1 bit)
+        features += [0] * 7  # Stereo (7 bits)
+        return torch.tensor(features, dtype=torch.float)
+    else:
+        features.append(0)
+    
+    # 2. Bond type (one-hot, 4 bits) - SINGLE, DOUBLE, TRIPLE, AROMATIC
     bond_type_list = [
         Chem.rdchem.BondType.SINGLE,
         Chem.rdchem.BondType.DOUBLE,
         Chem.rdchem.BondType.TRIPLE,
         Chem.rdchem.BondType.AROMATIC,
     ]
-    stereo_list = [
-        Chem.rdchem.BondStereo.STEREONONE,
-        Chem.rdchem.BondStereo.STEREOZ,
-        Chem.rdchem.BondStereo.STEREOE,
-        Chem.rdchem.BondStereo.STEREOANY,
-    ]
-    features = []
     features += one_hot(bond.GetBondType(), bond_type_list)
+    
+    # 3. Conjugated (binary, 1 bit) - b.GetIsConjugated()
     features.append(int(bond.GetIsConjugated()))
+    
+    # 4. In ring (binary, 1 bit) - b.IsInRing()
     features.append(int(bond.IsInRing()))
-    features += one_hot(bond.GetStereo(), stereo_list)
+    
+    # 5. Stereo (one-hot + pad, 7 bits) - stereo codes 0-5 + "unknown"
+    stereo_list = list(range(6))  # 0-5 range + unknown pad
+    stereo_value = int(bond.GetStereo())
+    features += one_hot(stereo_value, stereo_list)
+    
     return torch.tensor(features, dtype=torch.float)
 
 

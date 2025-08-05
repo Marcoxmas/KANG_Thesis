@@ -1,0 +1,14 @@
+FEATURE ANALYSIS SUMMARY: HIV
+==================================================
+
+Dataset: HIV
+Samples analyzed: 5000
+Total nodes: 112652
+Features per node: 127
+
+GLOBAL STATISTICS:
+  Minimum value: 0.000000
+  Maximum value: 2.089800
+  Mean value: 0.051696
+  Standard deviation: 0.219354
+  Value range: [0.000000, 2.089800]

@@ -1,0 +1,36 @@
+{
+  "without_global_features": [
+    {
+      "seed": 42,
+      "result": 0.7546965140671957,
+      "metric": "MAE"
+    },
+    {
+      "seed": 123,
+      "result": 0.7448032569317591,
+      "metric": "MAE"
+    },
+    {
+      "seed": 456,
+      "result": 0.7403048004422869,
+      "metric": "MAE"
+    }
+  ],
+  "with_global_features": [
+    {
+      "seed": 42,
+      "result": 0.7716302071298872,
+      "metric": "MAE"
+    },
+    {
+      "seed": 123,
+      "result": 0.754986404237293,
+      "metric": "MAE"
+    },
+    {
+      "seed": 456,
+      "result": 0.7565910736719768,
+      "metric": "MAE"
+    }
+  ]
+}

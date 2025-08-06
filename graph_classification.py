@@ -62,6 +62,7 @@ def get_args():
 	parser.add_argument("--use_roc_auc", action="store_true", help="Evaluate using ROC-AUC instead of accuracy")
 	parser.add_argument("--gamma", type=float, default=1.0, help="Gamma parameter for Focal Loss (default: 1.0)")
 	parser.add_argument("--return_history", action="store_true", help="Return training history for plotting")
+	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
 	return parser.parse_args()
 
 def graph_classification(args, return_history=False):
@@ -69,12 +70,19 @@ def graph_classification(args, return_history=False):
 	if args.dataset_name in ["MUTAG", "PROTEINS"]:
 		dataset_path = f'./dataset/{args.dataset_name}'
 		dataset = TUDataset(root=dataset_path, name=args.dataset_name)
+		if args.use_global_features:
+			print("Warning: Global features not supported for TUDataset. Ignoring --use_global_features flag.")
+			args.use_global_features = False
 	elif args.dataset_name == "HIV":
 		dataset_path = f'./dataset/{args.dataset_name}'
-		dataset = HIVGraphDataset(root=dataset_path)
+		dataset = HIVGraphDataset(root=dataset_path, use_global_features=args.use_global_features)
+		if args.use_global_features:
+			print("Using global molecular features")
 	else:
-		dataset_path = f'./dataset/TOXCAST/{args.dataset_name}'
-		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.dataset_name)
+		dataset_path = f'./dataset/TOXCAST_{args.dataset_name}'
+		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.dataset_name, use_global_features=args.use_global_features)
+		if args.use_global_features:
+			print("Using global molecular features")
 
 	# Apply subset for faster hyperparameter tuning if specified
 	if getattr(args, "use_subset", False):
@@ -123,6 +131,7 @@ def graph_classification(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
+		use_global_features=args.use_global_features,
 	).to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
@@ -142,7 +151,8 @@ def graph_classification(args, return_history=False):
 			optimizer.zero_grad()
 			data = data.to(device)
 			data.y = data.y.long()  # Convert labels to LongTensor
-			out = model(data.x, data.edge_index, data.batch)
+			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			out = model(data.x, data.edge_index, data.batch, global_features)
 			loss = criterion(out, data.y)
 			epoch_loss += loss.item()
 			loss.backward()
@@ -158,7 +168,8 @@ def graph_classification(args, return_history=False):
 				for data in val_loader:
 					data = data.to(device)
 					data.y = data.y.long()
-					out = model(data.x, data.edge_index, data.batch)
+					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					out = model(data.x, data.edge_index, data.batch, global_features)
 					probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
 					targets = data.y.cpu().numpy()
 					all_probs.extend(probs)
@@ -170,7 +181,8 @@ def graph_classification(args, return_history=False):
 				for data in val_loader:
 					data = data.to(device)
 					data.y = data.y.long()  # Convert labels to LongTensor
-					out = model(data.x, data.edge_index, data.batch)
+					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					out = model(data.x, data.edge_index, data.batch, global_features)
 					pred = out.argmax(dim=1)
 					correct += (pred == data.y).sum().item()
 					total += data.y.size(0)
@@ -208,7 +220,8 @@ def graph_classification(args, return_history=False):
 	with torch.no_grad():
 		for data in test_loader:
 			data = data.to(device)
-			out = model(data.x, data.edge_index, data.batch)
+			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			out = model(data.x, data.edge_index, data.batch, global_features)
 			pred = out.argmax(dim=1)
 			correct += (pred == data.y).sum().item()
 			total += data.y.size(0)

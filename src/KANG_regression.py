@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 import torch.nn.functional as F
@@ -9,6 +10,7 @@ from torch_geometric.nn.models import MLP
 from src.KANGConv import KANGConv
 from src.KANLinear import KANLinear
 from src.KAND import KAND
+from src.global_features import get_global_feature_dim
 
 class KANG(nn.Module):
 	def __init__(self,
@@ -26,12 +28,19 @@ class KANG(nn.Module):
 			kan=True,
 			linspace = False,
 			trainable_grid = True,
-			bsplines=False
+			bsplines=False,
+			use_global_features=False
 		):
 		super(KANG, self).__init__()
 		self.dropout		= dropout
 		self.residuals	= residuals
+		self.use_global_features = use_global_features
 		self.convs			= nn.ModuleList()
+
+		# Calculate final layer input dimension
+		final_input_dim = hidden_channels
+		if self.use_global_features:
+			final_input_dim += get_global_feature_dim()  # Add 200 global features
 
 		# First Layer
 		self.convs.append(
@@ -72,14 +81,14 @@ class KANG(nn.Module):
 		if kan:
 			if bsplines:
 				self.out_layer = KANLinear(
-					hidden_channels,
+					final_input_dim,
 					out_channels,
 					grid_size=num_grids,
 					grid_range=[grid_min, grid_max]
 				)
 			else:
 				self.out_layer = KAND(
-					hidden_channels,
+					final_input_dim,
 					out_channels,
 					grid_min,
 					grid_max,
@@ -89,11 +98,11 @@ class KANG(nn.Module):
 					trainable_grid = trainable_grid
 				)
 		else:
-			self.out_layer = MLP([hidden_channels, out_channels])
+			self.out_layer = MLP([final_input_dim, out_channels])
 
 		self.layer_norms = nn.ModuleList([nn.LayerNorm(hidden_channels, elementwise_affine=False, bias=False) for _ in range(num_layers)])
 
-	def forward(self, x, edge_index, batch=None):
+	def forward(self, x, edge_index, batch=None, global_features=None):
 		x.requires_grad_(True)
 		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 		x = F.dropout(x, p=self.dropout, training=self.training)
@@ -108,12 +117,22 @@ class KANG(nn.Module):
 
 		# 2. Readout layer
 		if batch != None:
-			x = global_mean_pool(x, batch) 
+			x = global_mean_pool(x, batch)
+		
+		# 3. Concatenate global features if available
+		if self.use_global_features and global_features is not None:
+			# Reshape global features to [batch_size, num_features]
+			# PyTorch Geometric concatenates global features, so we need to reshape
+			batch_size = x.size(0)
+			num_global_features = global_features.size(0) // batch_size
+			global_features = global_features.view(batch_size, num_global_features)
+			x = torch.cat([x, global_features], dim=1)
+		
 		x = self.out_layer(x)
 
 		return x
 	
-	def encode(self, x, edge_index, batch=None):
+	def encode(self, x, edge_index, batch=None, global_features=None):
 		x.requires_grad_(True)
 
 		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
@@ -130,6 +149,15 @@ class KANG(nn.Module):
 		# 2. Readout layer
 		if batch != None:
 			x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
+		
+		# 3. Concatenate global features if available
+		if self.use_global_features and global_features is not None:
+			# Reshape global features to [batch_size, num_features]
+			# PyTorch Geometric concatenates global features, so we need to reshape
+			batch_size = x.size(0)
+			num_global_features = global_features.size(0) // batch_size
+			global_features = global_features.view(batch_size, num_global_features)
+			x = torch.cat([x, global_features], dim=1)
 
 		return x
 	

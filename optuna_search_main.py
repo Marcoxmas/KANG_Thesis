@@ -14,9 +14,10 @@ def get_args():
     parser.add_argument("--target_column", type=str, default="mu", help="Target column for regression tasks")
     parser.add_argument("--use_subset", action="store_true", help="Use a smaller subset of the dataset during tuning")
     parser.add_argument("--subset_ratio", type=float, default=0.3, help="Ratio of dataset to use for subset (default: 0.3)")
+    parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False):
     def objective(trial):
         try:
             import argparse
@@ -41,6 +42,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             # Enable subset for faster hyperparameter tuning
             args.use_subset = use_subset
             args.subset_ratio = subset_ratio
+            args.use_global_features = use_global_features
 
             if task_type == "classification":
                 print("Running classification with:", args)
@@ -101,6 +103,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     best_args.return_history = True  # Flag to return training history
     best_args.use_subset = False  # Use full dataset for final training
     best_args.subset_ratio = 1.0
+    best_args.use_global_features = use_global_features
     
     if task_type == "classification":
         try:
@@ -117,4 +120,4 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
 
 if __name__ == "__main__":
     args = get_args()
-    optuna_search(args.task, args.dataset_name, args.target_column, args.use_subset, args.subset_ratio)
+    optuna_search(args.task, args.dataset_name, args.target_column, args.use_subset, args.subset_ratio, args.use_global_features)

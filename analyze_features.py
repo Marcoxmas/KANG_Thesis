@@ -145,7 +145,7 @@ def load_datasets():
     toxcast_targets = ['NVS_NR_hER', 'TOX21_ARE_BLA_Agonist_ratio', 'TOX21_p53_BLA_p1_ratio']
     for target in toxcast_targets:
         try:
-            toxcast_dataset = ToxCastGraphDataset(root=f'./dataset/TOXCAST/{target}', target_column=target)
+            toxcast_dataset = ToxCastGraphDataset(root=f'./dataset/TOXCAST_{target}', target_column=target)
             datasets['ToxCast'] = toxcast_dataset
             print(f"Loaded ToxCast {target} dataset: {len(toxcast_dataset)} molecules")
             break

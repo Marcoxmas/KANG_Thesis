@@ -4,12 +4,14 @@ from torch_geometric.data import InMemoryDataset, Data
 import os
 import shutil
 from smiles_to_graph import smiles_to_data
+from src.global_features import get_global_extractor, get_global_feature_dim
 
 class QM8GraphDataset(InMemoryDataset):
 
-    def __init__(self, root, target_column='E1-CC2', transform=None, pre_transform=None):
+    def __init__(self, root, target_column='E1-CC2', use_global_features=False, transform=None, pre_transform=None):
         self.csv_file = "data/qm8.csv"
         self.target_column = target_column
+        self.use_global_features = use_global_features
 
         # Define available target columns for QM8
         self.available_targets = [
@@ -22,6 +24,15 @@ class QM8GraphDataset(InMemoryDataset):
         if target_column not in self.available_targets:
             raise ValueError(f"target_column '{target_column}' not available. "
                            f"Available targets: {self.available_targets}")
+        
+        # Initialize global feature extractor if needed
+        if self.use_global_features:
+            self.global_extractor = get_global_extractor()
+            if self.global_extractor is None:
+                raise ImportError(
+                    "Global features requested but descriptastorus not available. "
+                    "Please install descriptastorus: pip install descriptastorus"
+                )
         
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
@@ -38,9 +49,11 @@ class QM8GraphDataset(InMemoryDataset):
         data_list = []
         valid_count = 0
         invalid_count = 0
+        global_features_count = 0
         
         print(f"Processing QM8 dataset with target column: {self.target_column}")
         print(f"Total molecules to process: {len(df)}")
+        print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
         
         for idx, row in df.iterrows():
             if idx % 10000 == 0:
@@ -56,6 +69,19 @@ class QM8GraphDataset(InMemoryDataset):
             try:
                 data = smiles_to_data(smiles, labels=float(target_value))
                 if data is not None and hasattr(data, 'edge_index'):
+                    # Extract global features if requested
+                    if self.use_global_features:
+                        global_features = self.global_extractor.extract_features(smiles)
+                        if global_features is not None:
+                            data.global_features = torch.tensor(global_features, dtype=torch.float32)
+                            global_features_count += 1
+                        else:
+                            # Skip molecules where global features cannot be extracted
+                            if idx % 10000 == 0:  # Only print occasionally to avoid spam
+                                print(f"Skipped molecule due to failed global feature extraction: {smiles}")
+                            invalid_count += 1
+                            continue
+                    
                     data_list.append(data)
                     valid_count += 1
                 else:
@@ -66,6 +92,8 @@ class QM8GraphDataset(InMemoryDataset):
                 invalid_count += 1
         
         print(f"Processed {valid_count} valid molecules, {invalid_count} invalid/missing")
+        if self.use_global_features:
+            print(f"Successfully extracted global features for {global_features_count} molecules")
         
         if not data_list:
             raise ValueError("No valid data found! Check your data.")
@@ -93,11 +121,25 @@ class QM8GraphDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return [f'data_{self.target_column}.pt']
+        suffix = "_with_global_features" if self.use_global_features else ""
+        return [f'data_{self.target_column}{suffix}.pt']
 
     @property
     def num_classes(self):
         return 1
+    
+    @property 
+    def num_global_features(self):
+        """
+        Returns the number of global features if enabled.
+        """
+        return get_global_feature_dim() if self.use_global_features else 0
+    
+    def has_global_features(self):
+        """
+        Returns whether this dataset includes global features.
+        """
+        return self.use_global_features
 
     def get_target_statistics(self):
         if not hasattr(self, '_target_stats'):

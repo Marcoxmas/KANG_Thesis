@@ -13,6 +13,13 @@ from hiv_dataset import HIVGraphDataset
 from src.KANG import KANG
 from src.utils import set_seed
 
+# Mixed precision training
+try:
+    from torch.cuda.amp import autocast, GradScaler
+    AMP_AVAILABLE = True
+except ImportError:
+    AMP_AVAILABLE = False
+
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 seed = 42
@@ -96,9 +103,14 @@ def graph_classification(args, return_history=False):
 	train_dataset = shuffled_dataset[:train_size]
 	val_dataset 	= shuffled_dataset[train_size:train_size + val_size]
 	test_dataset 	= shuffled_dataset[train_size + val_size:]
-	train_loader 	= DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-	val_loader 		= DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
-	test_loader 	= DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+	# DataLoader settings - reduce workers on Windows due to RDKit pickling issues
+	num_workers = 0 if args.use_global_features else 4  # RDKit functions can't be pickled on Windows
+	train_loader 	= DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+	                            pin_memory=True, num_workers=num_workers, persistent_workers=num_workers>0)
+	val_loader 		= DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
+	                           pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
+	test_loader 	= DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False,
+	                          pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
 
 	# Handle class imbalance and loss function selection
 	weights = None
@@ -135,6 +147,10 @@ def graph_classification(args, return_history=False):
 	).to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
+	# Initialize mixed precision scaler if available
+	scaler = GradScaler() if AMP_AVAILABLE and device.type == 'cuda' else None
+	use_amp = scaler is not None
+
 	best_val_acc = 0
 	early_stop_counter = 0
 	best_epoch = -1
@@ -144,19 +160,32 @@ def graph_classification(args, return_history=False):
 	train_losses = [] if return_history else None
 	val_metrics = [] if return_history else None
 
+	print(f"Training with mixed precision: {use_amp}")
+	print(f"DataLoader settings: pin_memory=True, num_workers={num_workers} (adaptive for global features)")
+
 	for epoch in range(args.epochs):
 		model.train()
 		epoch_loss = 0
 		for data in train_loader:
 			optimizer.zero_grad()
-			data = data.to(device)
+			data = data.to(device, non_blocking=True)
 			data.y = data.y.long()  # Convert labels to LongTensor
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-			out = model(data.x, data.edge_index, data.batch, global_features)
-			loss = criterion(out, data.y)
-			epoch_loss += loss.item()
-			loss.backward()
-			optimizer.step()
+			
+			if use_amp:
+				with autocast():
+					out = model(data.x, data.edge_index, data.batch, global_features)
+					loss = criterion(out, data.y)
+				epoch_loss += loss.item()
+				scaler.scale(loss).backward()
+				scaler.step(optimizer)
+				scaler.update()
+			else:
+				out = model(data.x, data.edge_index, data.batch, global_features)
+				loss = criterion(out, data.y)
+				epoch_loss += loss.item()
+				loss.backward()
+				optimizer.step()
 
 		# Validation evaluation
 		model.eval()
@@ -166,11 +195,18 @@ def graph_classification(args, return_history=False):
 				all_probs = []
 				all_targets = []
 				for data in val_loader:
-					data = data.to(device)
+					data = data.to(device, non_blocking=True)
 					data.y = data.y.long()
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-					out = model(data.x, data.edge_index, data.batch, global_features)
-					probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+					
+					if use_amp:
+						with autocast():
+							out = model(data.x, data.edge_index, data.batch, global_features)
+							probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+					else:
+						out = model(data.x, data.edge_index, data.batch, global_features)
+						probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+					
 					targets = data.y.cpu().numpy()
 					all_probs.extend(probs)
 					all_targets.extend(targets)
@@ -179,11 +215,18 @@ def graph_classification(args, return_history=False):
 				correct = 0
 				total = 0
 				for data in val_loader:
-					data = data.to(device)
+					data = data.to(device, non_blocking=True)
 					data.y = data.y.long()  # Convert labels to LongTensor
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-					out = model(data.x, data.edge_index, data.batch, global_features)
-					pred = out.argmax(dim=1)
+					
+					if use_amp:
+						with autocast():
+							out = model(data.x, data.edge_index, data.batch, global_features)
+							pred = out.argmax(dim=1)
+					else:
+						out = model(data.x, data.edge_index, data.batch, global_features)
+						pred = out.argmax(dim=1)
+					
 					correct += (pred == data.y).sum().item()
 					total += data.y.size(0)
 				val_acc = correct / total if total > 0 else 0
@@ -219,14 +262,23 @@ def graph_classification(args, return_history=False):
 	all_targets = []
 	with torch.no_grad():
 		for data in test_loader:
-			data = data.to(device)
+			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-			out = model(data.x, data.edge_index, data.batch, global_features)
-			pred = out.argmax(dim=1)
+			
+			if use_amp:
+				with autocast():
+					out = model(data.x, data.edge_index, data.batch, global_features)
+					pred = out.argmax(dim=1)
+					# For ROC-AUC
+					probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy() if out.shape[1] > 1 else torch.sigmoid(out).detach().cpu().numpy().flatten()
+			else:
+				out = model(data.x, data.edge_index, data.batch, global_features)
+				pred = out.argmax(dim=1)
+				# For ROC-AUC
+				probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy() if out.shape[1] > 1 else torch.sigmoid(out).detach().cpu().numpy().flatten()
+			
 			correct += (pred == data.y).sum().item()
 			total += data.y.size(0)
-			# For ROC-AUC
-			probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy() if out.shape[1] > 1 else torch.sigmoid(out).detach().cpu().numpy().flatten()
 			targets = data.y.cpu().numpy()
 			all_probs.extend(probs)
 			all_targets.extend(targets)

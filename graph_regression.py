@@ -14,6 +14,13 @@ from qm8_dataset import QM8GraphDataset
 from src.KANG_regression import KANG
 from src.utils import set_seed
 
+# Mixed precision training
+try:
+    from torch.cuda.amp import autocast, GradScaler
+    AMP_AVAILABLE = True
+except ImportError:
+    AMP_AVAILABLE = False
+
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 seed = 42
@@ -69,9 +76,14 @@ def graph_regression(args, return_history=False):
 	train_dataset = shuffled_dataset[:train_size]
 	val_dataset = shuffled_dataset[train_size:train_size + val_size]
 	test_dataset = shuffled_dataset[train_size + val_size:]
-	train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-	val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
-	test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+	# DataLoader settings - reduce workers on Windows due to RDKit pickling issues
+	num_workers = 0 if args.use_global_features else 4  # RDKit functions can't be pickled on Windows
+	train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, 
+	                         pin_memory=True, num_workers=num_workers, persistent_workers=num_workers>0)
+	val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
+	                       pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
+	test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False,
+	                        pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
 
 	criterion = nn.L1Loss()
 
@@ -91,6 +103,10 @@ def graph_regression(args, return_history=False):
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
+	# Initialize mixed precision scaler if available
+	scaler = GradScaler() if AMP_AVAILABLE and device.type == 'cuda' else None
+	use_amp = scaler is not None
+
 	best_val_score = float("inf")
 	early_stop_counter = 0
 	best_epoch = -1
@@ -100,18 +116,31 @@ def graph_regression(args, return_history=False):
 	train_losses = [] if return_history else None
 	val_metrics = [] if return_history else None
 
+	print(f"Training with mixed precision: {use_amp}")
+	print(f"DataLoader settings: pin_memory=True, num_workers={num_workers} (adaptive for global features)")
+
 	for epoch in range(args.epochs):
 		model.train()
 		epoch_loss = 0
 		for data in train_loader:
 			optimizer.zero_grad()
-			data = data.to(device)
+			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-			out = model(data.x, data.edge_index, data.batch, global_features).view(-1)
-			loss = criterion(out, data.y.view(-1).float())
-			epoch_loss += loss.item()
-			loss.backward()
-			optimizer.step()
+			
+			if use_amp:
+				with autocast():
+					out = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					loss = criterion(out, data.y.view(-1).float())
+				epoch_loss += loss.item()
+				scaler.scale(loss).backward()
+				scaler.step(optimizer)
+				scaler.update()
+			else:
+				out = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+				loss = criterion(out, data.y.view(-1).float())
+				epoch_loss += loss.item()
+				loss.backward()
+				optimizer.step()
 		epoch_loss /= len(train_loader)
 
 		# Validation
@@ -120,12 +149,20 @@ def graph_regression(args, return_history=False):
 		total_mae = 0
 		with torch.no_grad():
 			for data in val_loader:
-				data = data.to(device)
+				data = data.to(device, non_blocking=True)
 				global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-				preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
-				targets = data.y.view(-1).float()
-				total_loss += criterion(preds, targets).item()
-				total_mae += torch.abs(preds - targets).mean().item()
+				
+				if use_amp:
+					with autocast():
+						preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+						targets = data.y.view(-1).float()
+						total_loss += criterion(preds, targets).item()
+						total_mae += torch.abs(preds - targets).mean().item()
+				else:
+					preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					targets = data.y.view(-1).float()
+					total_loss += criterion(preds, targets).item()
+					total_mae += torch.abs(preds - targets).mean().item()
 		avg_val_loss = total_loss / len(val_loader)
 		avg_val_mae = total_mae / len(val_loader)
 
@@ -156,12 +193,20 @@ def graph_regression(args, return_history=False):
 	total_mae = 0
 	with torch.no_grad():
 		for data in test_loader:
-			data = data.to(device)
+			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
-			preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
-			targets = data.y.view(-1).float()
-			total_loss += criterion(preds, targets).item()
-			total_mae += torch.abs(preds - targets).mean().item()
+			
+			if use_amp:
+				with autocast():
+					preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					targets = data.y.view(-1).float()
+					total_loss += criterion(preds, targets).item()
+					total_mae += torch.abs(preds - targets).mean().item()
+			else:
+				preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+				targets = data.y.view(-1).float()
+				total_loss += criterion(preds, targets).item()
+				total_mae += torch.abs(preds - targets).mean().item()
 	test_rmse = math.sqrt(total_loss / len(test_loader))
 	test_mae = total_mae / len(test_loader)
 	print(f'Test RMSE: {test_rmse:.4f}, Test MAE: {test_mae:.4f}')

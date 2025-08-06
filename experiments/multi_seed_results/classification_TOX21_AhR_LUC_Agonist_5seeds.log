@@ -1,0 +1,485 @@
+﻿python.exe : Processing...
+At C:\Users\Marco\Documents\GitHub\KANG_Thesis\run_all_multi_seed_tests.ps1:124 char:19
++         $output = & $cmd[0] $cmd[1..($cmd.Length-1)] 2>&1
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Processing...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[18:08:43] Explicit valence for atom # 0 F, 1, is greater than permitted
+[18:08:44] Explicit valence for atom # 2 Cl, 1, is greater than permitted
+[18:08:44] Explicit valence for atom # 0 Cl, 1, is greater than permitted
+[18:08:45] WARNING: not removing hydrogen atom without neighbors
+[18:08:47] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:47] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:48] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:48] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:49] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:49] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:49] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:50] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:50] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:50] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:50] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:50] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:08:51] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+Done!
+Processing...
+[18:17:16] Explicit valence for atom # 0 F, 1, is greater than permitted
+[18:17:40] Explicit valence for atom # 2 Cl, 1, is greater than permitted
+[18:17:43] Explicit valence for atom # 0 Cl, 1, is greater than permitted
+[18:17:59] WARNING: not removing hydrogen atom without neighbors
+[18:17:59] WARNING: not removing hydrogen atom without neighbors
+[18:17:59] WARNING: not removing hydrogen atom without neighbors
+[18:18:52] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:19:13] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:19:22] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:19:49] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:06] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:06] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:15] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:23] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+=== Multi-Seed Test: classification on TOX21_AhR_LUC_Agonist ===
+Testing 5 seeds: [42, 123, 456, 789, 999]
+Epochs: 50, Patience: 25
+
+--- Testing without_global_features ---
+
+Seed 1/5: 42
+Copying data/toxcast_data.csv to dataset\TOXCAST_TOX21_AhR_LUC_Agonist\raw\toxcast_data.csv
+Processing ToxCast dataset with target: TOX21_AhR_LUC_Agonist
+Global features: disabled
+Skipped molecule with no bonds: [Cl-].[Cl-].[Ca++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Ca++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Ca++]
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cd++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cd++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cd++]
+Skipped molecule with no bonds: O.O.[Cl-].[Cl-].[Ba++]
+Excluded invalid or empty graph for SMILES: O.O.[Cl-].[Cl-].[Ba++]
+Excluded invalid graph for SMILES: O.O.[Cl-].[Cl-].[Ba++]
+Excluded invalid graph for SMILES: [F-][B+3]([F-])([F-])[F-].CC[N+]1(C)CCCC1
+Excluded invalid graph for SMILES: [NH4+].[NH4+].[Cl-][Pt++]([Cl-])([Cl-])[Cl-]
+Excluded invalid graph for SMILES: [Cl-][Pt]1([Cl-])[NH2+]CC[NH2+]1
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cu++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cu++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cu++]
+Skipped molecule with no bonds: [Cl-].[Cl-].[Hg++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Hg++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Hg++]
+Skipped molecule with no bonds: [Na+].[Br-]
+Excluded invalid or empty graph for SMILES: [Na+].[Br-]
+Excluded invalid graph for SMILES: [Na+].[Br-]
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule with no bonds: [K+].[I-]
+Excluded invalid or empty graph for SMILES: [K+].[I-]
+Excluded invalid graph for SMILES: [K+].[I-]
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cl-].[Fe+3]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cl-].[Fe+3]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cl-].[Fe+3]
+Skipped molecule with no bonds: [Cl-].[Cl-].[Fe++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Fe++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Fe++]
+Skipped molecule with no bonds: [Cl-].[Cl-].[SnH2++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[SnH2++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[SnH2++]
+Skipped molecule with no bonds: [I-].[I-].[Hg++]
+Excluded invalid or empty graph for SMILES: [I-].[I-].[Hg++]
+Excluded invalid graph for SMILES: [I-].[I-].[Hg++]
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Processed 7923 valid molecules, 674 invalid/missing
+Target columns: ['TOX21_AhR_LUC_Agonist']
+Number of tasks: 1
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 94.6422, Val ROC-AUC: 0.8005
+Epoch 005: Train Loss: 81.6129, Val ROC-AUC: 0.8332
+Epoch 010: Train Loss: 80.8080, Val ROC-AUC: 0.8364
+Epoch 015: Train Loss: 81.4154, Val ROC-AUC: 0.8291
+Epoch 020: Train Loss: 80.2593, Val ROC-AUC: 0.8369
+Epoch 025: Train Loss: 83.4478, Val ROC-AUC: 0.8545
+Epoch 030: Train Loss: 80.2020, Val ROC-AUC: 0.8555
+Epoch 035: Train Loss: 77.7180, Val ROC-AUC: 0.8463
+Epoch 040: Train Loss: 81.9705, Val ROC-AUC: 0.8429
+Epoch 045: Train Loss: 76.4708, Val ROC-AUC: 0.8370
+Epoch 049: Train Loss: 79.7732, Val ROC-AUC: 0.8452
+
+Best model was saved at epoch 30 with val roc auc: 0.8555
+Test Loss: Test Acc: 0.7188
+Test ROC-AUC: 0.8538
+Seed 42 - ROC-AUC: 0.8555
+
+Seed 2/5: 123
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 99.6783, Val ROC-AUC: 0.7859
+Epoch 005: Train Loss: 79.6540, Val ROC-AUC: 0.8167
+Epoch 010: Train Loss: 79.1574, Val ROC-AUC: 0.8074
+Epoch 015: Train Loss: 78.8758, Val ROC-AUC: 0.8241
+Epoch 020: Train Loss: 77.1973, Val ROC-AUC: 0.8231
+Epoch 025: Train Loss: 80.5417, Val ROC-AUC: 0.8269
+Epoch 030: Train Loss: 77.5904, Val ROC-AUC: 0.8160
+Epoch 035: Train Loss: 77.9829, Val ROC-AUC: 0.8227
+Epoch 040: Train Loss: 76.0948, Val ROC-AUC: 0.8260
+Epoch 045: Train Loss: 76.6419, Val ROC-AUC: 0.8208
+Epoch 049: Train Loss: 77.7223, Val ROC-AUC: 0.8238
+
+Best model was saved at epoch 37 with val roc auc: 0.8373
+Test Loss: Test Acc: 0.7276
+Test ROC-AUC: 0.8819
+Seed 123 - ROC-AUC: 0.8373
+
+Seed 3/5: 456
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 99.9118, Val ROC-AUC: 0.8355
+Epoch 005: Train Loss: 81.4326, Val ROC-AUC: 0.8644
+Epoch 010: Train Loss: 82.6514, Val ROC-AUC: 0.8659
+Epoch 015: Train Loss: 80.4088, Val ROC-AUC: 0.8626
+Epoch 020: Train Loss: 81.0215, Val ROC-AUC: 0.8790
+Epoch 025: Train Loss: 79.7267, Val ROC-AUC: 0.8629
+Epoch 030: Train Loss: 81.5341, Val ROC-AUC: 0.8756
+Epoch 035: Train Loss: 78.0245, Val ROC-AUC: 0.8718
+
+Best model was saved at epoch 13 with val roc auc: 0.8820
+Test Loss: Test Acc: 0.6910
+Test ROC-AUC: 0.8713
+Seed 456 - ROC-AUC: 0.8820
+
+Seed 4/5: 789
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 95.7203, Val ROC-AUC: 0.8153
+Epoch 005: Train Loss: 82.0426, Val ROC-AUC: 0.8336
+Epoch 010: Train Loss: 78.9419, Val ROC-AUC: 0.8484
+Epoch 015: Train Loss: 80.6329, Val ROC-AUC: 0.8439
+Epoch 020: Train Loss: 77.3261, Val ROC-AUC: 0.8495
+Epoch 025: Train Loss: 78.7297, Val ROC-AUC: 0.8435
+Epoch 030: Train Loss: 77.0831, Val ROC-AUC: 0.8452
+Epoch 035: Train Loss: 76.5575, Val ROC-AUC: 0.8506
+Epoch 040: Train Loss: 76.9867, Val ROC-AUC: 0.8478
+Epoch 045: Train Loss: 75.2576, Val ROC-AUC: 0.8432
+Epoch 049: Train Loss: 76.1591, Val ROC-AUC: 0.8568
+
+Best model was saved at epoch 49 with val roc auc: 0.8568
+Test Loss: Test Acc: 0.7011
+Test ROC-AUC: 0.8761
+Seed 789 - ROC-AUC: 0.8568
+
+Seed 5/5: 999
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 94.8476, Val ROC-AUC: 0.7800
+Epoch 005: Train Loss: 80.0451, Val ROC-AUC: 0.8135
+Epoch 010: Train Loss: 76.6755, Val ROC-AUC: 0.8100
+Epoch 015: Train Loss: 80.2910, Val ROC-AUC: 0.8107
+Epoch 020: Train Loss: 79.4484, Val ROC-AUC: 0.8205
+Epoch 025: Train Loss: 78.1375, Val ROC-AUC: 0.8225
+Epoch 030: Train Loss: 75.8923, Val ROC-AUC: 0.8179
+Epoch 035: Train Loss: 73.9467, Val ROC-AUC: 0.8203
+Epoch 040: Train Loss: 78.0944, Val ROC-AUC: 0.8234
+Epoch 045: Train Loss: 74.6983, Val ROC-AUC: 0.8165
+Epoch 049: Train Loss: 75.2090, Val ROC-AUC: 0.8228
+
+Best model was saved at epoch 32 with val roc auc: 0.8285
+Test Loss: Test Acc: 0.6116
+Test ROC-AUC: 0.8386
+Seed 999 - ROC-AUC: 0.8285
+
+--- Testing with_global_features ---
+
+Seed 1/5: 42
+Processing ToxCast dataset with target: TOX21_AhR_LUC_Agonist
+Global features: enabled
+Skipped molecule due to failed global feature extraction: Cl[Nd](Cl)Cl
+Skipped molecule due to failed global feature extraction: Cl[Dy](Cl)Cl
+Skipped molecule due to failed global feature extraction: Cl[In](Cl)Cl
+Skipped molecule due to failed global feature extraction: Cl[Sb](Cl)Cl
+Skipped molecule due to failed global feature extraction: ClP(Cl)(Cl)(Cl)Cl
+Skipped molecule with no bonds: [Cl-].[Cl-].[Ca++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Ca++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Ca++]
+Skipped molecule due to failed global feature extraction: Cl[Hg]C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: [Na+].[Na+].[O-][Se]([O-])=O
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cd++]
+[18:20:27] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:42] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:45] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:48] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+[18:20:52] SMILES Parse Error: Failed parsing SMILES 'FAIL' for input: 'FAIL'
+Done!
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cd++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cd++]
+Skipped molecule due to failed global feature extraction: OB(O)O[Hg]C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: [O-][N+](=O)O[Cd]O[N+]([O-])=O
+Skipped molecule with no bonds: O.O.[Cl-].[Cl-].[Ba++]
+Excluded invalid or empty graph for SMILES: O.O.[Cl-].[Cl-].[Ba++]
+Excluded invalid graph for SMILES: O.O.[Cl-].[Cl-].[Ba++]
+Skipped molecule due to failed global feature extraction: Cl[Ba]Cl
+Skipped molecule due to failed global feature extraction: Cl[Yb](Cl)Cl
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(OC(C)=O)OC(C)=O
+Skipped molecule due to failed global feature extraction: NCCC(=O)N1[Zn]OC(=O)[C@@H]1CC1=CN=CN1
+Skipped molecule due to failed global feature extraction: CCCC[Sn](Cl)(Cl)Cl
+Skipped molecule due to failed global feature extraction: C[Hg]Cl
+Skipped molecule due to failed global feature extraction: CC(=O)O[Pb](C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: OCC(=O)NC1=CC=C(C=C1)[As](O)(=O)O[Bi]=O
+Excluded invalid graph for SMILES: [F-][B+3]([F-])([F-])[F-].CC[N+]1(C)CCCC1
+Skipped molecule due to failed global feature extraction: Cl[V](Cl)(C1C=CC=C1)C1C=CC=C1
+Skipped molecule due to failed global feature extraction: OC1=C(C=C(C=C1)[As](O)(O)=O)[N+]([O-])=O
+Skipped molecule due to failed global feature extraction: NC(=O)NC1=CC=C(C=C1)[As](O)(O)=O
+Skipped molecule due to failed global feature extraction: OC[C@H]1OC(S[Au])[C@H](O)[C@@H](O)[C@@H]1O
+Skipped molecule due to failed global feature extraction: CC(O)C(=O)O[Hg]C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: [Cl-].[Cl-].C1C=CC=C1[Ti++]C1=CC=CC1
+Skipped molecule due to failed global feature extraction: [Na+].NC1=CC=C(C=C1)[As](O)([O-])=O
+Skipped molecule due to failed global feature extraction: Cl[Zr](Cl)(C1C=CC=C1)C1=CC=CC1
+Skipped molecule due to failed global feature extraction: [Na+].[Na+].O[Hg]C1=C([O-])C(Br)=CC2=C1OC1=CC([O-])=C(Br)C=C1C21OC(=O)C2=C1C=CC=C2
+Skipped molecule due to failed global feature extraction: [As]#[In]
+Skipped molecule due to failed global feature extraction: O=[Bi]O[Bi]=O
+Skipped molecule due to failed global feature extraction: O=[Cd]
+Skipped molecule due to failed global feature extraction: O=[Mo](=O)=O
+Skipped molecule due to failed global feature extraction: S=[Sb](=S)S[Sb](=S)=S
+Skipped molecule due to failed global feature extraction: O1[As]2O[As]3O[As]1O[As](O2)O3
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(CCCC)OC(=O)C=C
+Skipped molecule due to failed global feature extraction: Cl[Au](Cl)Cl
+Skipped molecule due to failed global feature extraction: [O-][N+]1=CC=CC=C1S[Zn]SC1=CC=CC=[N+]1[O-]
+Skipped molecule due to failed global feature extraction: O.O.O.O.O.O.O.O.Cl[Zr](Cl)=O
+Skipped molecule due to failed global feature extraction: O.O.[Na+].[Na+].O=N[Fe--](C#N)(C#N)(C#N)(C#N)C#N
+Excluded invalid graph for SMILES: [NH4+].[NH4+].[Cl-][Pt++]([Cl-])([Cl-])[Cl-]
+Skipped molecule due to failed global feature extraction: CCCCN(CCCC)C(=S)S[Ni]SC(=S)N(CCCC)CCCC
+Skipped molecule due to failed global feature extraction: [K+].N#C[Au-]C#N
+Excluded invalid graph for SMILES: [Cl-][Pt]1([Cl-])[NH2+]CC[NH2+]1
+Skipped molecule due to failed global feature extraction: O.O.Cl[In](Cl)Cl
+Skipped molecule due to failed global feature extraction: CCCC[Sn](Cl)(CCCC)CCCC
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(CCCC)CCCC
+Skipped molecule due to failed global feature extraction: C[Se]CCC(N)C(O)=O
+Skipped molecule due to failed global feature extraction: O[Bi]1OC(=O)C2=CC=CC=C2O1
+Skipped molecule due to failed global feature extraction: N[Pt](N)(Cl)Cl
+Skipped molecule due to failed global feature extraction: [Na+].[Na+].F[Si--](F)(F)(F)(F)F
+Skipped molecule due to failed global feature extraction: [NH4+].[NH4+].F[Si--](F)(F)(F)(F)F
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(CCCC)OC(=O)C(C)=C
+Skipped molecule due to failed global feature extraction: P#[In]
+Skipped molecule due to failed global feature extraction: CC[Sn](Br)(CC)CC
+Skipped molecule due to failed global feature extraction: CCOC(=O)\C=C(/C)O[Ti](OC(C)C)(OC(C)C)O\C(C)=C\C(=O)OCC
+Skipped molecule due to failed global feature extraction: C[Se]CC[C@H](N)C(O)=O
+Skipped molecule due to failed global feature extraction: CCP(CC)(CC)=[Au]S[C@H]1O[C@@H](COC(C)=O)[C@H](OC(C)=O)[C@@H](OC(C)=O)[C@@H]1OC(C)=O
+Skipped molecule due to failed global feature extraction: CCCCCCCC[Sn](Cl)(Cl)CCCCCCCC
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: CC(C)O[Ti](OCCN(CCO)CCO)(OCCN(CCO)CCO)OC(C)C
+Skipped molecule due to failed global feature extraction: F[Sn](C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: O.[Na+].[Na+].[O-]C(=O)CC(S[Au])C([O-])=O
+Skipped molecule due to failed global feature extraction: CC(=O)O[Cr](O)OC(C)=O.CC(=O)O[Cr](O)OC(C)=O.CC(=O)O[Cr](OC(C)=O)OC(C)=O
+Skipped molecule due to failed global feature extraction: N[Pt]1(N)OC(=O)C2(CCC2)C(=O)O1
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(CCCC)OC(=O)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: COC(CNC(=O)C1=CC=CC=C1OCC(O)=O)C[Hg]O
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: [Na+].CC[Hg]SC1=C(C=CC=C1)C([O-])=O
+Skipped molecule due to failed global feature extraction: CCCC[Sn](CCCC)(CCCC)O[Sn](CCCC)(CCCC)CCCC
+Skipped molecule due to failed global feature extraction: [Hg](C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: O=[Bi]OC(=O)O[Bi]=O
+Skipped molecule due to failed global feature extraction: Cl[Bi](Cl)(C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: OC(=O)C1=CC=C([Hg]Cl)C=C1
+Skipped molecule due to failed global feature extraction: C1=CC=C(C=C1)[Bi](C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: O.O.OS(=O)CO[Na]
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: O=C1N([Se]C2=C1C=CC=C2)C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: O=C1O[Pt]2(N[C@@H]3CCCC[C@H]3N2)OC1=O
+Skipped molecule due to failed global feature extraction: OC1=CC=C([Hg]Cl)C=C1
+Skipped molecule due to failed global feature extraction: CC(=O)O[Hg]C1=CC=CC=C1
+Skipped molecule due to failed global feature extraction: NC(N)=[Se]
+Skipped molecule due to failed global feature extraction: O=[As]C1=CC=CC=C1
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: CCCC[Sn](Cl)(Cl)CCCC
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: O=[Se]=O
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cu++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cu++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cu++]
+Skipped molecule with no bonds: [Cl-].[Cl-].[Hg++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Hg++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Hg++]
+Skipped molecule due to failed global feature extraction: C[Sn](C)(Cl)Cl
+Skipped molecule due to failed global feature extraction: C[As](C)(O)=O
+Skipped molecule due to failed global feature extraction: Cl[Sn](Cl)(Cl)Cl
+Skipped molecule due to failed global feature extraction: Cl[Zn]Cl
+Skipped molecule due to failed global feature extraction: Cl[Pd]Cl
+Skipped molecule with no bonds: [Na+].[Br-]
+Excluded invalid or empty graph for SMILES: [Na+].[Br-]
+Excluded invalid graph for SMILES: [Na+].[Br-]
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule with no bonds: [K+].[I-]
+Excluded invalid or empty graph for SMILES: [K+].[I-]
+Excluded invalid graph for SMILES: [K+].[I-]
+Skipped molecule due to failed global feature extraction: [Cu]I
+Skipped molecule due to failed global feature extraction: [Na]I
+Skipped molecule due to failed global feature extraction: O[Sn](C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1
+Skipped molecule with no bonds: [Cl-].[Cl-].[Cl-].[Fe+3]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Cl-].[Fe+3]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Cl-].[Fe+3]
+Skipped molecule due to failed global feature extraction: Cl[Ni]Cl
+Skipped molecule with no bonds: [Cl-].[Cl-].[Fe++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[Fe++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[Fe++]
+Skipped molecule with no bonds: [Cl-].[Cl-].[SnH2++]
+Excluded invalid or empty graph for SMILES: [Cl-].[Cl-].[SnH2++]
+Excluded invalid graph for SMILES: [Cl-].[Cl-].[SnH2++]
+Skipped molecule with no bonds: [I-].[I-].[Hg++]
+Excluded invalid or empty graph for SMILES: [I-].[I-].[Hg++]
+Excluded invalid graph for SMILES: [I-].[I-].[Hg++]
+Skipped molecule due to failed global feature extraction: [K+].[K+].[O-][Cr](=O)(=O)O[Cr]([O-])(=O)=O
+Skipped molecule due to failed global feature extraction: O[Se](O)=O
+Skipped molecule due to failed global feature extraction: COC(O)C=C(C)OP(O)(OC)OC
+Skipped molecule due to failed global feature extraction: Cl[Bi]=O
+Skipped molecule due to failed global feature extraction: O.O.[Na+].[Na+].[O-][Cr](=O)(=O)O[Cr]([O-])(=O)=O
+Skipped molecule due to failed global feature extraction: Br[Ca]Br
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: OC1=C([Hg]Cl)C=CC=C1
+Skipped molecule due to failed global feature extraction: CC(=O)O[Sn](C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1
+Excluded invalid graph for SMILES: FAIL
+Excluded invalid graph for SMILES: FAIL
+Skipped molecule due to failed global feature extraction: N[Pt]1(N)OCC(=O)O1
+Skipped molecule due to failed global feature extraction: CC(=O)NC1=C(O)C=CC(=C1)[As](O)(O)=O
+Skipped molecule due to failed global feature extraction: NC1=CC=C(C=C1)[As](O)(O)=O
+Skipped molecule due to failed global feature extraction: O[As](O)(=O)C1=CC=C(C=C1)[N+]([O-])=O
+Skipped molecule due to failed global feature extraction: O[Bi]1OC2=C(O1)C(O)=CC(=C2)C(O)=O
+Skipped molecule due to failed global feature extraction: C[Sn](Cl)(Cl)Cl
+Skipped molecule due to failed global feature extraction: CC[Ge](Cl)(CC)CC
+Processed 7822 valid molecules, 775 invalid/missing
+Target columns: ['TOX21_AhR_LUC_Agonist']
+Number of tasks: 1
+Successfully extracted global features for 7822 molecules
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 79.7623, Val ROC-AUC: 0.8300
+Epoch 005: Train Loss: 60.1573, Val ROC-AUC: 0.8502
+Epoch 010: Train Loss: 60.5350, Val ROC-AUC: 0.8429
+Epoch 015: Train Loss: 56.8478, Val ROC-AUC: 0.8643
+Epoch 020: Train Loss: 59.1420, Val ROC-AUC: 0.8435
+Epoch 025: Train Loss: 57.6501, Val ROC-AUC: 0.8586
+Epoch 030: Train Loss: 57.6142, Val ROC-AUC: 0.8504
+Epoch 035: Train Loss: 55.6675, Val ROC-AUC: 0.8563
+Epoch 040: Train Loss: 55.0019, Val ROC-AUC: 0.8650
+Epoch 045: Train Loss: 55.1940, Val ROC-AUC: 0.8631
+Epoch 049: Train Loss: 54.9646, Val ROC-AUC: 0.8607
+
+Best model was saved at epoch 33 with val roc auc: 0.8703
+Test Loss: Test Acc: 0.7739
+Test ROC-AUC: 0.8287
+Seed 42 - ROC-AUC: 0.8703
+
+Seed 2/5: 123
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 82.9193, Val ROC-AUC: 0.8442
+Epoch 005: Train Loss: 58.2972, Val ROC-AUC: 0.8350
+Epoch 010: Train Loss: 58.0466, Val ROC-AUC: 0.8316
+Epoch 015: Train Loss: 59.9760, Val ROC-AUC: 0.8338
+Epoch 020: Train Loss: 56.9782, Val ROC-AUC: 0.8269
+Epoch 025: Train Loss: 56.0149, Val ROC-AUC: 0.8315
+
+Best model was saved at epoch 1 with val roc auc: 0.8461
+Test Loss: Test Acc: 0.8033
+Test ROC-AUC: 0.8371
+Seed 123 - ROC-AUC: 0.8461
+
+Seed 3/5: 456
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 83.6715, Val ROC-AUC: 0.8956
+Epoch 005: Train Loss: 62.0332, Val ROC-AUC: 0.9144
+Epoch 010: Train Loss: 58.9659, Val ROC-AUC: 0.9218
+Epoch 015: Train Loss: 60.3801, Val ROC-AUC: 0.9158
+Epoch 020: Train Loss: 61.0957, Val ROC-AUC: 0.9151
+Epoch 025: Train Loss: 63.7064, Val ROC-AUC: 0.9100
+Epoch 030: Train Loss: 59.9514, Val ROC-AUC: 0.9163
+Epoch 035: Train Loss: 59.6145, Val ROC-AUC: 0.9233
+Epoch 040: Train Loss: 58.0184, Val ROC-AUC: 0.9153
+Epoch 045: Train Loss: 59.7260, Val ROC-AUC: 0.9167
+Epoch 049: Train Loss: 59.3675, Val ROC-AUC: 0.9149
+
+Best model was saved at epoch 29 with val roc auc: 0.9297
+Test Loss: Test Acc: 0.7522
+Test ROC-AUC: 0.8469
+Seed 456 - ROC-AUC: 0.9297
+
+Seed 4/5: 789
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 80.5460, Val ROC-AUC: 0.8211
+Epoch 005: Train Loss: 62.9281, Val ROC-AUC: 0.8129
+Epoch 010: Train Loss: 59.2664, Val ROC-AUC: 0.8234
+Epoch 015: Train Loss: 59.0779, Val ROC-AUC: 0.8259
+Epoch 020: Train Loss: 56.1400, Val ROC-AUC: 0.8277
+Epoch 025: Train Loss: 61.0923, Val ROC-AUC: 0.8086
+Epoch 030: Train Loss: 56.7233, Val ROC-AUC: 0.8178
+Epoch 035: Train Loss: 60.0925, Val ROC-AUC: 0.8356
+Epoch 040: Train Loss: 60.9391, Val ROC-AUC: 0.8131
+Epoch 045: Train Loss: 56.4034, Val ROC-AUC: 0.8146
+Epoch 049: Train Loss: 60.9366, Val ROC-AUC: 0.8238
+
+Best model was saved at epoch 33 with val roc auc: 0.8388
+Test Loss: Test Acc: 0.7944
+Test ROC-AUC: 0.8878
+Seed 789 - ROC-AUC: 0.8388
+
+Seed 5/5: 999
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 83.1727, Val ROC-AUC: 0.8044
+Epoch 005: Train Loss: 62.2425, Val ROC-AUC: 0.8247
+Epoch 010: Train Loss: 60.3388, Val ROC-AUC: 0.8235
+Epoch 015: Train Loss: 60.4933, Val ROC-AUC: 0.8214
+Epoch 020: Train Loss: 60.2100, Val ROC-AUC: 0.8243
+Epoch 025: Train Loss: 59.3845, Val ROC-AUC: 0.8369
+Epoch 030: Train Loss: 63.2528, Val ROC-AUC: 0.8169
+Epoch 035: Train Loss: 56.2929, Val ROC-AUC: 0.8336
+Epoch 040: Train Loss: 57.8340, Val ROC-AUC: 0.8366
+Epoch 045: Train Loss: 56.1439, Val ROC-AUC: 0.8440
+Epoch 049: Train Loss: 58.3875, Val ROC-AUC: 0.8333
+
+Best model was saved at epoch 29 with val roc auc: 0.8467
+Test Loss: Test Acc: 0.7803
+Test ROC-AUC: 0.8815
+Seed 999 - ROC-AUC: 0.8467
+
+============================================================
+RESULTS SUMMARY
+============================================================
+
+Without Global Features:
+  Mean ▒ Std: 0.8520 ▒ 0.0185
+  Range: [0.8285, 0.8820]
+  Individual results: ['0.8555', '0.8373', '0.8820', '0.8568', '0.8285']
+
+With Global Features:
+  Mean ▒ Std: 0.8663 ▒ 0.0334
+  Range: [0.8388, 0.9297]
+  Individual results: ['0.8703', '0.8461', '0.9297', '0.8388', '0.8467']
+
+STATISTICAL COMPARISON:
+  Better configuration: with global features
+  Performance difference: 1.68%
+  Paired t-test p-value: 0.2458
+  Difference is not statistically significant (p >= 0.05)
+  Cohen's d (effect size): 0.6076
+  Effect size interpretation: medium
+
+Results saved to: experiments/multi_seed_results/classification_TOX21_AhR_LUC_Agonist_5seeds.json

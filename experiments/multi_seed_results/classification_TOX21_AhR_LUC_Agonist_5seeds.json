@@ -1,0 +1,56 @@
+{
+  "without_global_features": [
+    {
+      "seed": 42,
+      "result": 0.8555296243318528,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 123,
+      "result": 0.8373299106770181,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 456,
+      "result": 0.8820362622036263,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 789,
+      "result": 0.8568327091942148,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 999,
+      "result": 0.8285019617664245,
+      "metric": "ROC-AUC"
+    }
+  ],
+  "with_global_features": [
+    {
+      "seed": 42,
+      "result": 0.8703266098404929,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 123,
+      "result": 0.846114088516404,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 456,
+      "result": 0.9297212543554007,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 789,
+      "result": 0.8387510926573426,
+      "metric": "ROC-AUC"
+    },
+    {
+      "seed": 999,
+      "result": 0.846709470304976,
+      "metric": "ROC-AUC"
+    }
+  ]
+}

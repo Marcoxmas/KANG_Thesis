@@ -1,0 +1,20 @@
+% LaTeX table for thesis results
+% Copy this into your thesis document
+
+\begin{table}[htbp]
+\centering
+\caption{Multi-seed test results comparing performance with and without global features}
+\label{tab:multiseed_results}
+\begin{tabular}{|l|l|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Target} & \textbf{Without Global} & \textbf{With Global} & \textbf{Improvement} & \textbf{p-value} \\
+\hline
+HIV &  & 0.7318 & 0.7787 & +6.41\% & 0.162 \\
+TOX21 & AhR_LUC_Agonist & 0.8520 & 0.8663 & +1.68\% & 0.246 \\
+QM8 & E1-CC2 & 0.0152 & 0.0139 & +8.23\%* & 0.001 \\
+QM9 & mu & 0.7424 & 0.7564 & -1.88\%* & 0.022 \\
+\hline
+\end{tabular}
+\end{table}
+
+% * indicates statistically significant difference (p < 0.05)

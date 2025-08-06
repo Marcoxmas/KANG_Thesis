@@ -1,0 +1,3 @@
+﻿# Failed Tests Log
+# Generated on 08/06/2025 13:58:20
+

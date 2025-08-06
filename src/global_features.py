@@ -98,7 +98,11 @@ class GlobalFeatureExtractor:
         Returns:
             List[Optional[np.ndarray]]: List of feature arrays, with None for failed extractions
         """
-        return [self.extract_features(smiles) for smiles in smiles_list]
+        results = []
+        for smiles in smiles_list:
+            features = self.extract_features(smiles)
+            results.append(features)
+        return results
     
     def get_feature_dim(self) -> int:
         """

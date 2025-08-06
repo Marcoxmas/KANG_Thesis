@@ -1,0 +1,374 @@
+﻿python.exe : Processing...
+At C:\Users\Marco\Documents\GitHub\KANG_Thesis\run_all_multi_seed_tests.ps1:124 char:19
++         $output = & $cmd[0] $cmd[1..($cmd.Length-1)] 2>&1
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Processing...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Done!
+=== Multi-Seed Test: regression on QM8 ===
+Testing 5 seeds: [42, 123, 456, 789, 999]
+Epochs: 50, Patience: 25
+
+--- Testing without_global_features ---
+
+Seed 1/5: 42
+QM8 dataset loaded with target column: E1-CC2
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 0.0517, Val MSE: 0.0330, Val RMSE: 0.1817, Val MAE: 0.0330
+Epoch 005: Train Loss: 0.0232, Val MSE: 0.0204, Val RMSE: 0.1429, Val MAE: 0.0204
+Epoch 010: Train Loss: 0.0217, Val MSE: 0.0155, Val RMSE: 0.1246, Val MAE: 0.0155
+Epoch 015: Train Loss: 0.0217, Val MSE: 0.0170, Val RMSE: 0.1303, Val MAE: 0.0170
+Epoch 020: Train Loss: 0.0207, Val MSE: 0.0176, Val RMSE: 0.1327, Val MAE: 0.0176
+Epoch 025: Train Loss: 0.0222, Val MSE: 0.0207, Val RMSE: 0.1440, Val MAE: 0.0207
+Epoch 030: Train Loss: 0.0216, Val MSE: 0.0162, Val RMSE: 0.1272, Val MAE: 0.0162
+
+Best model was saved at epoch 10 with val MAE: 0.0155
+Test RMSE: 0.1237, Test MAE: 0.0153
+Seed 42 - MAE: 0.0155
+
+Seed 2/5: 123
+QM8 dataset loaded with target column: E1-CC2
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 0.0611, Val MSE: 0.0286, Val RMSE: 0.1692, Val MAE: 0.0286
+Epoch 005: Train Loss: 0.0265, Val MSE: 0.0233, Val RMSE: 0.1525, Val MAE: 0.0233
+Epoch 010: Train Loss: 0.0242, Val MSE: 0.0161, Val RMSE: 0.1267, Val MAE: 0.0161
+Epoch 015: Train Loss: 0.0209, Val MSE: 0.0400, Val RMSE: 0.1999, Val MAE: 0.0400
+Epoch 020: Train Loss: 0.0210, Val MSE: 0.0160, Val RMSE: 0.1265, Val MAE: 0.0160
+Epoch 025: Train Loss: 0.0208, Val MSE: 0.0269, Val RMSE: 0.1640, Val MAE: 0.0269
+Epoch 030: Train Loss: 0.0206, Val MSE: 0.0247, Val RMSE: 0.1572, Val MAE: 0.0247
+Epoch 035: Train Loss: 0.0208, Val MSE: 0.0269, Val RMSE: 0.1640, Val MAE: 0.0269
+Epoch 040: Train Loss: 0.0204, Val MSE: 0.0145, Val RMSE: 0.1206, Val MAE: 0.0145
+Epoch 045: Train Loss: 0.0209, Val MSE: 0.0165, Val RMSE: 0.1286, Val MAE: 0.0165
+Epoch 049: Train Loss: 0.0203, Val MSE: 0.0206, Val RMSE: 0.1434, Val MAE: 0.0206
+
+Best model was saved at epoch 40 with val MAE: 0.0145
+Test RMSE: 0.1267, Test MAE: 0.0161
+Seed 123 - MAE: 0.0145
+
+Seed 3/5: 456
+QM8 dataset loaded with target column: E1-CC2
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 0.0605, Val MSE: 0.0255, Val RMSE: 0.1596, Val MAE: 0.0255
+Epoch 005: Train Loss: 0.0234, Val MSE: 0.0178, Val RMSE: 0.1334, Val MAE: 0.0178
+Epoch 010: Train Loss: 0.0213, Val MSE: 0.0190, Val RMSE: 0.1377, Val MAE: 0.0190
+Epoch 015: Train Loss: 0.0208, Val MSE: 0.0238, Val RMSE: 0.1543, Val MAE: 0.0238
+Epoch 020: Train Loss: 0.0205, Val MSE: 0.0261, Val RMSE: 0.1615, Val MAE: 0.0261
+Epoch 025: Train Loss: 0.0206, Val MSE: 0.0150, Val RMSE: 0.1227, Val MAE: 0.0150
+Epoch 030: Train Loss: 0.0202, Val MSE: 0.0169, Val RMSE: 0.1301, Val MAE: 0.0169
+Epoch 035: Train Loss: 0.0206, Val MSE: 0.0163, Val RMSE: 0.1278, Val MAE: 0.0163
+Epoch 040: Train Loss: 0.0202, Val MSE: 0.0173, Val RMSE: 0.1313, Val MAE: 0.0173
+Epoch 045: Train Loss: 0.0207, Val MSE: 0.0191, Val RMSE: 0.1382, Val MAE: 0.0191
+
+Best model was saved at epoch 23 with val MAE: 0.0150
+Test RMSE: 0.1240, Test MAE: 0.0154
+Seed 456 - MAE: 0.0150
+
+Seed 4/5: 789
+QM8 dataset loaded with target column: E1-CC2
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 0.0597, Val MSE: 0.0363, Val RMSE: 0.1906, Val MAE: 0.0363
+Epoch 005: Train Loss: 0.0293, Val MSE: 0.0226, Val RMSE: 0.1503, Val MAE: 0.0226
+Epoch 010: Train Loss: 0.0220, Val MSE: 0.0240, Val RMSE: 0.1549, Val MAE: 0.0240
+Epoch 015: Train Loss: 0.0210, Val MSE: 0.0307, Val RMSE: 0.1753, Val MAE: 0.0307
+Epoch 020: Train Loss: 0.0211, Val MSE: 0.0160, Val RMSE: 0.1265, Val MAE: 0.0160
+Epoch 025: Train Loss: 0.0208, Val MSE: 0.0169, Val RMSE: 0.1299, Val MAE: 0.0169
+Epoch 030: Train Loss: 0.0209, Val MSE: 0.0197, Val RMSE: 0.1405, Val MAE: 0.0197
+Epoch 035: Train Loss: 0.0202, Val MSE: 0.0263, Val RMSE: 0.1623, Val MAE: 0.0263
+Epoch 040: Train Loss: 0.0210, Val MSE: 0.0316, Val RMSE: 0.1779, Val MAE: 0.0316
+Epoch 045: Train Loss: 0.0208, Val MSE: 0.0170, Val RMSE: 0.1306, Val MAE: 0.0170
+Epoch 049: Train Loss: 0.0207, Val MSE: 0.0158, Val RMSE: 0.1256, Val MAE: 0.0158
+
+Best model was saved at epoch 36 with val MAE: 0.0156
+Test RMSE: 0.1199, Test MAE: 0.0144
+Seed 789 - MAE: 0.0156
+
+Seed 5/5: 999
+QM8 dataset loaded with target column: E1-CC2
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 0.0505, Val MSE: 0.0260, Val RMSE: 0.1613, Val MAE: 0.0260
+Epoch 005: Train Loss: 0.0218, Val MSE: 0.0236, Val RMSE: 0.1538, Val MAE: 0.0236
+Epoch 010: Train Loss: 0.0213, Val MSE: 0.0349, Val RMSE: 0.1867, Val MAE: 0.0349
+Epoch 015: Train Loss: 0.0217, Val MSE: 0.0274, Val RMSE: 0.1656, Val MAE: 0.0274
+Epoch 020: Train Loss: 0.0215, Val MSE: 0.0178, Val RMSE: 0.1333, Val MAE: 0.0178
+Epoch 025: Train Loss: 0.0207, Val MSE: 0.0170, Val RMSE: 0.1303, Val MAE: 0.0170
+Epoch 030: Train Loss: 0.0211, Val MSE: 0.0227, Val RMSE: 0.1506, Val MAE: 0.0227
+Epoch 035: Train Loss: 0.0215, Val MSE: 0.0244, Val RMSE: 0.1562, Val MAE: 0.0244
+Epoch 040: Train Loss: 0.0213, Val MSE: 0.0202, Val RMSE: 0.1420, Val MAE: 0.0202
+Epoch 045: Train Loss: 0.0212, Val MSE: 0.0180, Val RMSE: 0.1342, Val MAE: 0.0180
+Epoch 049: Train Loss: 0.0214, Val MSE: 0.0186, Val RMSE: 0.1364, Val MAE: 0.0186
+
+Best model was saved at epoch 36 with val MAE: 0.0153
+Test RMSE: 0.1304, Test MAE: 0.0170
+Seed 999 - MAE: 0.0153
+
+--- Testing with_global_features ---
+
+Seed 1/5: 42
+Processing QM8 dataset with target column: E1-CC2
+Total molecules to process: 21786
+Global features: enabled
+Processed 0/21786 molecules...
+Skipped molecule with no bonds: [H]C([H])([H])[H]
+Excluded invalid or empty graph for SMILES: [H]C([H])([H])[H]
+Excluded invalid graph for SMILES: [H]C([H])([H])[H]
+Skipped molecule with no bonds: [H]N([H])[H]
+Excluded invalid or empty graph for SMILES: [H]N([H])[H]
+Excluded invalid graph for SMILES: [H]N([H])[H]
+Skipped molecule with no bonds: [H]O[H]
+Excluded invalid or empty graph for SMILES: [H]O[H]
+Excluded invalid graph for SMILES: [H]O[H]
+Processed 10000/21786 molecules...
+Processed 20000/21786 molecules...
+Processed 21783 valid molecules, 3 invalid/missing
+Successfully extracted global features for 21783 molecules
+QM8 dataset loaded with target column: E1-CC2
+Using global molecular features
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 0.0693, Val MSE: 0.0246, Val RMSE: 0.1569, Val MAE: 0.0246
+Epoch 005: Train Loss: 0.0311, Val MSE: 0.0438, Val RMSE: 0.2093, Val MAE: 0.0438
+Epoch 010: Train Loss: 0.0227, Val MSE: 0.0273, Val RMSE: 0.1651, Val MAE: 0.0273
+Epoch 015: Train Loss: 0.0226, Val MSE: 0.0177, Val RMSE: 0.1332, Val MAE: 0.0177
+Epoch 020: Train Loss: 0.0221, Val MSE: 0.0282, Val RMSE: 0.1681, Val MAE: 0.0282
+Epoch 025: Train Loss: 0.0218, Val MSE: 0.0197, Val RMSE: 0.1403, Val MAE: 0.0197
+Epoch 030: Train Loss: 0.0216, Val MSE: 0.0324, Val RMSE: 0.1801, Val MAE: 0.0324
+Epoch 035: Train Loss: 0.0211, Val MSE: 0.0250, Val RMSE: 0.1582, Val MAE: 0.0250
+Epoch 040: Train Loss: 0.0199, Val MSE: 0.0209, Val RMSE: 0.1444, Val MAE: 0.0209
+Epoch 045: Train Loss: 0.0210, Val MSE: 0.0366, Val RMSE: 0.1913, Val MAE: 0.0366
+Epoch 049: Train Loss: 0.0208, Val MSE: 0.0153, Val RMSE: 0.1239, Val MAE: 0.0153
+
+Best model was saved at epoch 33 with val MAE: 0.0145
+Test RMSE: 0.1192, Test MAE: 0.0142
+Seed 42 - MAE: 0.0145
+
+Seed 2/5: 123
+QM8 dataset loaded with target column: E1-CC2
+Using global molecular features
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 0.0633, Val MSE: 0.0663, Val RMSE: 0.2575, Val MAE: 0.0663
+Epoch 005: Train Loss: 0.0254, Val MSE: 0.0327, Val RMSE: 0.1809, Val MAE: 0.0327
+Epoch 010: Train Loss: 0.0233, Val MSE: 0.0502, Val RMSE: 0.2240, Val MAE: 0.0502
+Epoch 015: Train Loss: 0.0201, Val MSE: 0.0145, Val RMSE: 0.1205, Val MAE: 0.0145
+Epoch 020: Train Loss: 0.0201, Val MSE: 0.0150, Val RMSE: 0.1225, Val MAE: 0.0150
+Epoch 025: Train Loss: 0.0220, Val MSE: 0.0142, Val RMSE: 0.1191, Val MAE: 0.0142
+Epoch 030: Train Loss: 0.0214, Val MSE: 0.0190, Val RMSE: 0.1379, Val MAE: 0.0190
+Epoch 035: Train Loss: 0.0208, Val MSE: 0.0143, Val RMSE: 0.1194, Val MAE: 0.0143
+Epoch 040: Train Loss: 0.0217, Val MSE: 0.0228, Val RMSE: 0.1511, Val MAE: 0.0228
+Epoch 045: Train Loss: 0.0208, Val MSE: 0.0149, Val RMSE: 0.1221, Val MAE: 0.0149
+Epoch 049: Train Loss: 0.0196, Val MSE: 0.0219, Val RMSE: 0.1481, Val MAE: 0.0219
+
+Best model was saved at epoch 28 with val MAE: 0.0135
+Test RMSE: 0.1158, Test MAE: 0.0134
+Seed 123 - MAE: 0.0135
+
+Seed 3/5: 456
+QM8 dataset loaded with target column: E1-CC2
+Using global molecular features
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 0.0611, Val MSE: 0.0262, Val RMSE: 0.1618, Val MAE: 0.0262
+Epoch 005: Train Loss: 0.0270, Val MSE: 0.0172, Val RMSE: 0.1310, Val MAE: 0.0172
+Epoch 010: Train Loss: 0.0241, Val MSE: 0.0193, Val RMSE: 0.1389, Val MAE: 0.0193
+Epoch 015: Train Loss: 0.0217, Val MSE: 0.0270, Val RMSE: 0.1642, Val MAE: 0.0270
+Epoch 020: Train Loss: 0.0203, Val MSE: 0.0161, Val RMSE: 0.1268, Val MAE: 0.0161
+Epoch 025: Train Loss: 0.0222, Val MSE: 0.0148, Val RMSE: 0.1218, Val MAE: 0.0148
+Epoch 030: Train Loss: 0.0206, Val MSE: 0.0147, Val RMSE: 0.1211, Val MAE: 0.0147
+Epoch 035: Train Loss: 0.0200, Val MSE: 0.0549, Val RMSE: 0.2343, Val MAE: 0.0549
+Epoch 040: Train Loss: 0.0215, Val MSE: 0.0310, Val RMSE: 0.1760, Val MAE: 0.0310
+Epoch 045: Train Loss: 0.0208, Val MSE: 0.0148, Val RMSE: 0.1215, Val MAE: 0.0148
+
+Best model was saved at epoch 23 with val MAE: 0.0135
+Test RMSE: 0.1171, Test MAE: 0.0137
+Seed 456 - MAE: 0.0135
+
+Seed 4/5: 789
+QM8 dataset loaded with target column: E1-CC2
+Using global molecular features
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 0.0608, Val MSE: 0.0429, Val RMSE: 0.2072, Val MAE: 0.0429
+Epoch 005: Train Loss: 0.0254, Val MSE: 0.0166, Val RMSE: 0.1289, Val MAE: 0.0166
+Epoch 010: Train Loss: 0.0246, Val MSE: 0.0265, Val RMSE: 0.1628, Val MAE: 0.0265
+Epoch 015: Train Loss: 0.0231, Val MSE: 0.0161, Val RMSE: 0.1267, Val MAE: 0.0161
+Epoch 020: Train Loss: 0.0206, Val MSE: 0.0149, Val RMSE: 0.1219, Val MAE: 0.0149
+Epoch 025: Train Loss: 0.0216, Val MSE: 0.0192, Val RMSE: 0.1384, Val MAE: 0.0192
+Epoch 030: Train Loss: 0.0209, Val MSE: 0.0165, Val RMSE: 0.1286, Val MAE: 0.0165
+Epoch 035: Train Loss: 0.0205, Val MSE: 0.0170, Val RMSE: 0.1303, Val MAE: 0.0170
+Epoch 040: Train Loss: 0.0205, Val MSE: 0.0445, Val RMSE: 0.2109, Val MAE: 0.0445
+Epoch 045: Train Loss: 0.0212, Val MSE: 0.0264, Val RMSE: 0.1625, Val MAE: 0.0264
+Epoch 049: Train Loss: 0.0206, Val MSE: 0.0183, Val RMSE: 0.1352, Val MAE: 0.0183
+
+Best model was saved at epoch 43 with val MAE: 0.0147
+Test RMSE: 0.1202, Test MAE: 0.0145
+Seed 789 - MAE: 0.0147
+
+Seed 5/5: 999
+QM8 dataset loaded with target column: E1-CC2
+Using global molecular features
+
+QM8 Dataset Information:
+Target column: E1-CC2
+Number of samples: 21783
+Target statistics:
+  Mean: 0.2201
+  Std:  0.0438
+  Min:  0.0696
+  Max:  0.5138
+  Count: 21786
+Node features: torch.Size([2, 127])
+Edge features: torch.Size([2, 13])
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 0.0581, Val MSE: 0.0642, Val RMSE: 0.2534, Val MAE: 0.0642
+Epoch 005: Train Loss: 0.0304, Val MSE: 0.0489, Val RMSE: 0.2212, Val MAE: 0.0489
+Epoch 010: Train Loss: 0.0249, Val MSE: 0.0145, Val RMSE: 0.1205, Val MAE: 0.0145
+Epoch 015: Train Loss: 0.0239, Val MSE: 0.0211, Val RMSE: 0.1451, Val MAE: 0.0211
+Epoch 020: Train Loss: 0.0234, Val MSE: 0.0347, Val RMSE: 0.1863, Val MAE: 0.0347
+Epoch 025: Train Loss: 0.0205, Val MSE: 0.0201, Val RMSE: 0.1417, Val MAE: 0.0201
+Epoch 030: Train Loss: 0.0214, Val MSE: 0.0169, Val RMSE: 0.1301, Val MAE: 0.0169
+Epoch 035: Train Loss: 0.0205, Val MSE: 0.0186, Val RMSE: 0.1364, Val MAE: 0.0186
+Epoch 040: Train Loss: 0.0211, Val MSE: 0.0149, Val RMSE: 0.1222, Val MAE: 0.0149
+Epoch 045: Train Loss: 0.0224, Val MSE: 0.0171, Val RMSE: 0.1309, Val MAE: 0.0171
+
+Best model was saved at epoch 22 with val MAE: 0.0136
+Test RMSE: 0.1195, Test MAE: 0.0143
+Seed 999 - MAE: 0.0136
+
+============================================================
+RESULTS SUMMARY
+============================================================
+
+Without Global Features:
+  Mean ▒ Std: 0.0152 ▒ 0.0004
+  Range: [0.0145, 0.0156]
+  Individual results: ['0.0155', '0.0145', '0.0150', '0.0156', '0.0153']
+
+With Global Features:
+  Mean ▒ Std: 0.0139 ▒ 0.0005
+  Range: [0.0135, 0.0147]
+  Individual results: ['0.0145', '0.0135', '0.0135', '0.0147', '0.0136']
+
+STATISTICAL COMPARISON:
+  Better configuration: with global features
+  Performance difference: 8.23%
+  Paired t-test p-value: 0.0011
+  Difference is statistically significant (p < 0.05)
+  Cohen's d (effect size): -3.7769
+  Effect size interpretation: large
+
+Results saved to: experiments/multi_seed_results/regression_QM8_E1-CC2_5seeds.json

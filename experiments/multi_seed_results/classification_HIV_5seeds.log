@@ -1,0 +1,217 @@
+﻿=== Multi-Seed Test: classification on HIV ===
+Testing 5 seeds: [42, 123, 456, 789, 999]
+Epochs: 50, Patience: 25
+
+--- Testing without_global_features ---
+
+Seed 1/5: 42
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 545.7283, Val ROC-AUC: 0.6685
+Epoch 005: Train Loss: 492.9112, Val ROC-AUC: 0.7363
+Epoch 010: Train Loss: 479.3638, Val ROC-AUC: 0.7422
+Epoch 015: Train Loss: 476.7594, Val ROC-AUC: 0.7228
+Epoch 020: Train Loss: 473.8261, Val ROC-AUC: 0.7213
+Epoch 025: Train Loss: 468.4623, Val ROC-AUC: 0.7488
+Epoch 030: Train Loss: 467.4760, Val ROC-AUC: 0.7148
+Epoch 035: Train Loss: 470.7523, Val ROC-AUC: 0.7010
+Epoch 040: Train Loss: 472.9368, Val ROC-AUC: 0.7448
+Epoch 045: Train Loss: 470.1336, Val ROC-AUC: 0.7516
+Epoch 049: Train Loss: 468.6521, Val ROC-AUC: 0.7216
+
+Best model was saved at epoch 38 with val roc auc: 0.7680
+Test Loss: Test Acc: 0.7626
+Test ROC-AUC: 0.7144
+Seed 42 - ROC-AUC: 0.7680
+
+Seed 2/5: 123
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 541.6060, Val ROC-AUC: 0.6493
+Epoch 005: Train Loss: 503.2379, Val ROC-AUC: 0.7050
+Epoch 010: Train Loss: 494.0526, Val ROC-AUC: 0.7172
+Epoch 015: Train Loss: 491.5647, Val ROC-AUC: 0.7061
+Epoch 020: Train Loss: 489.9171, Val ROC-AUC: 0.7151
+Epoch 025: Train Loss: 492.3521, Val ROC-AUC: 0.7308
+Epoch 030: Train Loss: 485.9835, Val ROC-AUC: 0.7288
+Epoch 035: Train Loss: 480.7159, Val ROC-AUC: 0.7431
+Epoch 040: Train Loss: 483.3467, Val ROC-AUC: 0.7336
+Epoch 045: Train Loss: 484.8755, Val ROC-AUC: 0.7268
+Epoch 049: Train Loss: 484.4809, Val ROC-AUC: 0.7274
+
+Best model was saved at epoch 35 with val roc auc: 0.7431
+Test Loss: Test Acc: 0.6221
+Test ROC-AUC: 0.7175
+Seed 123 - ROC-AUC: 0.7431
+
+Seed 3/5: 456
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 557.4752, Val ROC-AUC: 0.6278
+Epoch 005: Train Loss: 519.1022, Val ROC-AUC: 0.6827
+Epoch 010: Train Loss: 493.2927, Val ROC-AUC: 0.7062
+Epoch 015: Train Loss: 481.8119, Val ROC-AUC: 0.7050
+Epoch 020: Train Loss: 477.9798, Val ROC-AUC: 0.6953
+Epoch 025: Train Loss: 468.7367, Val ROC-AUC: 0.6994
+Epoch 030: Train Loss: 473.8143, Val ROC-AUC: 0.6812
+Epoch 035: Train Loss: 477.4921, Val ROC-AUC: 0.7031
+Epoch 040: Train Loss: 474.4715, Val ROC-AUC: 0.7050
+Epoch 045: Train Loss: 469.2122, Val ROC-AUC: 0.6876
+Epoch 049: Train Loss: 468.9795, Val ROC-AUC: 0.7136
+
+Best model was saved at epoch 32 with val roc auc: 0.7157
+Test Loss: Test Acc: 0.9324
+Test ROC-AUC: 0.7572
+Seed 456 - ROC-AUC: 0.7157
+
+Seed 4/5: 789
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 550.2020, Val ROC-AUC: 0.6606
+Epoch 005: Train Loss: 496.9763, Val ROC-AUC: 0.7130
+Epoch 010: Train Loss: 499.7231, Val ROC-AUC: 0.7187
+Epoch 015: Train Loss: 487.9171, Val ROC-AUC: 0.7235
+Epoch 020: Train Loss: 485.0181, Val ROC-AUC: 0.7534
+Epoch 025: Train Loss: 477.8074, Val ROC-AUC: 0.7259
+Epoch 030: Train Loss: 475.7076, Val ROC-AUC: 0.7504
+Epoch 035: Train Loss: 477.1834, Val ROC-AUC: 0.7567
+Epoch 040: Train Loss: 472.5659, Val ROC-AUC: 0.7443
+Epoch 045: Train Loss: 473.5647, Val ROC-AUC: 0.7547
+Epoch 049: Train Loss: 479.7892, Val ROC-AUC: 0.7707
+
+Best model was saved at epoch 49 with val roc auc: 0.7707
+Test Loss: Test Acc: 0.6921
+Test ROC-AUC: 0.7423
+Seed 789 - ROC-AUC: 0.7707
+
+Seed 5/5: 999
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=4 (adaptive for global features)
+Epoch 000: Train Loss: 538.8792, Val ROC-AUC: 0.5116
+Epoch 005: Train Loss: 533.2256, Val ROC-AUC: 0.5536
+Epoch 010: Train Loss: 529.1735, Val ROC-AUC: 0.4780
+Epoch 015: Train Loss: 530.0934, Val ROC-AUC: 0.4946
+Epoch 020: Train Loss: 530.1981, Val ROC-AUC: 0.4973
+Epoch 025: Train Loss: 528.6980, Val ROC-AUC: 0.5000
+
+Best model was saved at epoch 2 with val roc auc: 0.6618
+Test Loss: Test Acc: 0.0375
+Test ROC-AUC: 0.6999
+Seed 999 - ROC-AUC: 0.6618
+
+--- Testing with_global_features ---
+
+Seed 1/5: 42
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 508.0830, Val ROC-AUC: 0.7681
+Epoch 005: Train Loss: 475.4669, Val ROC-AUC: 0.7732
+Epoch 010: Train Loss: 452.0837, Val ROC-AUC: 0.7886
+Epoch 015: Train Loss: 451.8442, Val ROC-AUC: 0.7994
+Epoch 020: Train Loss: 453.9297, Val ROC-AUC: 0.7652
+Epoch 025: Train Loss: 448.9885, Val ROC-AUC: 0.7887
+Epoch 030: Train Loss: 437.9348, Val ROC-AUC: 0.7805
+Epoch 035: Train Loss: 435.3636, Val ROC-AUC: 0.7887
+
+Best model was saved at epoch 15 with val roc auc: 0.7994
+Test Loss: Test Acc: 0.7392
+Test ROC-AUC: 0.7745
+Seed 42 - ROC-AUC: 0.7994
+
+Seed 2/5: 123
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 510.9066, Val ROC-AUC: 0.7001
+Epoch 005: Train Loss: 457.1092, Val ROC-AUC: 0.7331
+Epoch 010: Train Loss: 451.8501, Val ROC-AUC: 0.7426
+Epoch 015: Train Loss: 446.8222, Val ROC-AUC: 0.7579
+Epoch 020: Train Loss: 447.3795, Val ROC-AUC: 0.7345
+Epoch 025: Train Loss: 434.7925, Val ROC-AUC: 0.7287
+Epoch 030: Train Loss: 436.5231, Val ROC-AUC: 0.7470
+Epoch 035: Train Loss: 434.9347, Val ROC-AUC: 0.7457
+
+Best model was saved at epoch 15 with val roc auc: 0.7579
+Test Loss: Test Acc: 0.6912
+Test ROC-AUC: 0.7512
+Seed 123 - ROC-AUC: 0.7579
+
+Seed 3/5: 456
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 503.2769, Val ROC-AUC: 0.7379
+Epoch 005: Train Loss: 481.7175, Val ROC-AUC: 0.7575
+Epoch 010: Train Loss: 441.5399, Val ROC-AUC: 0.7779
+Epoch 015: Train Loss: 460.4602, Val ROC-AUC: 0.7525
+Epoch 020: Train Loss: 453.6473, Val ROC-AUC: 0.7288
+Epoch 025: Train Loss: 433.7210, Val ROC-AUC: 0.7708
+Epoch 030: Train Loss: 431.3673, Val ROC-AUC: 0.7491
+
+Best model was saved at epoch 10 with val roc auc: 0.7779
+Test Loss: Test Acc: 0.6546
+Test ROC-AUC: 0.7468
+Seed 456 - ROC-AUC: 0.7779
+
+Seed 4/5: 789
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 516.1863, Val ROC-AUC: 0.7101
+Epoch 005: Train Loss: 474.4713, Val ROC-AUC: 0.7339
+Epoch 010: Train Loss: 445.4824, Val ROC-AUC: 0.7381
+Epoch 015: Train Loss: 443.8274, Val ROC-AUC: 0.7354
+Epoch 020: Train Loss: 448.9532, Val ROC-AUC: 0.7345
+Epoch 025: Train Loss: 435.5584, Val ROC-AUC: 0.7300
+Epoch 030: Train Loss: 442.4471, Val ROC-AUC: 0.7472
+Epoch 035: Train Loss: 432.8471, Val ROC-AUC: 0.7410
+Epoch 040: Train Loss: 422.3875, Val ROC-AUC: 0.7362
+
+Best model was saved at epoch 17 with val roc auc: 0.7530
+Test Loss: Test Acc: 0.8850
+Test ROC-AUC: 0.8182
+Seed 789 - ROC-AUC: 0.7530
+
+Seed 5/5: 999
+Using global molecular features
+Training with mixed precision: True
+DataLoader settings: pin_memory=True, num_workers=0 (adaptive for global features)
+Epoch 000: Train Loss: 514.4316, Val ROC-AUC: 0.7276
+Epoch 005: Train Loss: 457.9289, Val ROC-AUC: 0.7716
+Epoch 010: Train Loss: 448.2688, Val ROC-AUC: 0.7628
+Epoch 015: Train Loss: 451.1103, Val ROC-AUC: 0.7801
+Epoch 020: Train Loss: 445.8862, Val ROC-AUC: 0.8054
+Epoch 025: Train Loss: 443.9582, Val ROC-AUC: 0.7474
+Epoch 030: Train Loss: 436.8762, Val ROC-AUC: 0.7952
+Epoch 035: Train Loss: 437.4083, Val ROC-AUC: 0.7639
+Epoch 040: Train Loss: 442.0351, Val ROC-AUC: 0.7556
+
+Best model was saved at epoch 20 with val roc auc: 0.8054
+Test Loss: Test Acc: 0.5447
+Test ROC-AUC: 0.7740
+Seed 999 - ROC-AUC: 0.8054
+
+============================================================
+RESULTS SUMMARY
+============================================================
+
+Without Global Features:
+  Mean ▒ Std: 0.7318 ▒ 0.0403
+  Range: [0.6618, 0.7707]
+  Individual results: ['0.7680', '0.7431', '0.7157', '0.7707', '0.6618']
+
+With Global Features:
+  Mean ▒ Std: 0.7787 ▒ 0.0211
+  Range: [0.7530, 0.8054]
+  Individual results: ['0.7994', '0.7579', '0.7779', '0.7530', '0.8054']
+
+STATISTICAL COMPARISON:
+  Better configuration: with global features
+  Performance difference: 6.41%
+  Paired t-test p-value: 0.1623
+  Difference is not statistically significant (p >= 0.05)
+  Cohen's d (effect size): 0.7650
+  Effect size interpretation: medium
+
+Results saved to: experiments/multi_seed_results/classification_HIV_5seeds.json

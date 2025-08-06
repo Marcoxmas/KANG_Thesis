@@ -117,13 +117,16 @@ class KAND(nn.Module):
 						output_index, input_index * ng : (input_index + 1) * ng
 				]   # num_grids,
 
+				# Ensure device consistency
+				device = w.device
 				x = torch.linspace(
 						self.rbf.grid_min - num_extrapolate_bins * h,
 						self.rbf.grid_max + num_extrapolate_bins * h,
-						num_pts
-				).to(self.device)  # num_pts, num_grids
+						num_pts,
+						device=device
+				)  # num_pts, num_grids
 
-				grid_x = self.rbf.grid
+				grid_x = self.rbf.grid.to(device)
 
 				with torch.no_grad():
 					rbf_vals = self.rbf(x.to(w.dtype))  # shape: (num_pts, num_grids)

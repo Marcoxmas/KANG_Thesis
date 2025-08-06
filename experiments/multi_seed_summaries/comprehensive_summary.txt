@@ -1,0 +1,134 @@
+KANG THESIS - COMPREHENSIVE MULTI-SEED TEST RESULTS
+================================================================================
+Generated on: 2025-08-06 18:27:38
+Total tests performed: 4
+Total configurations tested: 8
+
+EXECUTIVE SUMMARY
+----------------------------------------
+Regression tests: 4
+Classification tests: 4
+
+DATASET BREAKDOWN:
+  HIV: 1 tests
+  QM8: 1 tests
+  QM9: 1 tests
+  TOX21: 1 tests
+
+GLOBAL FEATURES IMPACT SUMMARY:
+  Tests with positive improvement: 3/4 (75.0%)
+  Statistically significant improvements: 2/4 (50.0%)
+  Mean improvement: 3.61% (± 4.58%)
+  Best improvement: 8.23% (regression_QM8_E1-CC2)
+  Worst performance: -1.88% (regression_QM9_mu)
+
+TOXCAST ASSAY DESCRIPTIONS:
+----------------------------------------
+TOX21_AhR_LUC_Agonist:
+  Measures the activation of the Aryl hydrocarbon Receptor pathway
+
+TOX21_Aromatase_Inhibition:
+  Assesses inhibition of the aromatase enzyme, important in hormone biosynthesis
+
+TOX21_AutoFluor_HEK293_Cell_blue:
+  Control task to detect autofluorescence in HEK293 cells under blue channel excitation
+
+TOX21_p53_BLA_p3_ch1:
+  Measures activation of the tumor suppressor protein p53 using a reporter assay
+
+TOX21_p53_BLA_p4_ratio:
+  Additional reporter-based p53 activation task capturing response ratios
+
+DETAILED RESULTS BY DATASET
+----------------------------------------
+
+HIV DATASET:
+  Classification Task:
+    Target: N/A
+      Without Global Features:
+        Mean ± Std: 0.7318 ± 0.0403
+        Range: [0.6618, 0.7707]
+        95% CI: [0.6818, 0.7818]
+        CV: 0.0550
+
+      With Global Features:
+        Mean ± Std: 0.7787 ± 0.0211
+        Range: [0.7530, 0.8054]
+        95% CI: [0.7525, 0.8050]
+        CV: 0.0272
+
+
+QM8 DATASET:
+  Regression Task:
+    Target: E1-CC2
+      Without Global Features:
+        Mean ± Std: 0.0152 ± 0.0004
+        Range: [0.0145, 0.0156]
+        95% CI: [0.0147, 0.0157]
+        CV: 0.0251
+
+      With Global Features:
+        Mean ± Std: 0.0139 ± 0.0005
+        Range: [0.0135, 0.0147]
+        95% CI: [0.0133, 0.0146]
+        CV: 0.0365
+
+
+QM9 DATASET:
+  Regression Task:
+    Target: mu
+      Without Global Features:
+        Mean ± Std: 0.7424 ± 0.0068
+        Range: [0.7324, 0.7494]
+        95% CI: [0.7340, 0.7509]
+        CV: 0.0091
+
+      With Global Features:
+        Mean ± Std: 0.7564 ± 0.0095
+        Range: [0.7448, 0.7737]
+        95% CI: [0.7446, 0.7681]
+        CV: 0.0125
+
+
+TOX21 DATASET:
+  Classification Task:
+    Target: AhR_LUC_Agonist
+      Without Global Features:
+        Mean ± Std: 0.8520 ± 0.0185
+        Range: [0.8285, 0.8820]
+        95% CI: [0.8291, 0.8750]
+        CV: 0.0217
+
+      With Global Features:
+        Mean ± Std: 0.8663 ± 0.0334
+        Range: [0.8388, 0.9297]
+        95% CI: [0.8248, 0.9078]
+        CV: 0.0386
+
+
+STATISTICAL COMPARISONS
+----------------------------------------
+
+TOP IMPROVEMENTS:
+  regression_QM8_E1-CC2: +8.23% (significant)
+  classification_HIV: +6.41% (not significant)
+  classification_TOX21_AhR_LUC_Agonist: +1.68% (not significant)
+  regression_QM9_mu: -1.88% (significant)
+
+TASK-SPECIFIC ANALYSIS:
+
+CLASSIFICATION TASKS:
+  Number of tests: 2
+  Mean improvement: 4.04%
+  Std improvement: 3.35%
+  Significant improvements: 0/2
+  Best performer: classification_HIV (+6.41%)
+  Worst performer: classification_TOX21_AhR_LUC_Agonist (+1.68%)
+
+REGRESSION TASKS:
+  Number of tests: 2
+  Mean improvement: 3.18%
+  Std improvement: 7.15%
+  Significant improvements: 2/2
+  Best performer: regression_QM8_E1-CC2 (+8.23%)
+  Worst performer: regression_QM9_mu (-1.88%)

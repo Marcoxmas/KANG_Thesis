@@ -1,0 +1,56 @@
+{
+  "without_global_features": [
+    {
+      "seed": 42,
+      "result": 0.7482519274666196,
+      "metric": "MAE"
+    },
+    {
+      "seed": 123,
+      "result": 0.7494167032695952,
+      "metric": "MAE"
+    },
+    {
+      "seed": 456,
+      "result": 0.7364519755045573,
+      "metric": "MAE"
+    },
+    {
+      "seed": 789,
+      "result": 0.7323702272914705,
+      "metric": "MAE"
+    },
+    {
+      "seed": 999,
+      "result": 0.745659461475554,
+      "metric": "MAE"
+    }
+  ],
+  "with_global_features": [
+    {
+      "seed": 42,
+      "result": 0.7736723624524616,
+      "metric": "MAE"
+    },
+    {
+      "seed": 123,
+      "result": 0.7544822922774723,
+      "metric": "MAE"
+    },
+    {
+      "seed": 456,
+      "result": 0.7561358068670545,
+      "metric": "MAE"
+    },
+    {
+      "seed": 789,
+      "result": 0.7448285314298811,
+      "metric": "MAE"
+    },
+    {
+      "seed": 999,
+      "result": 0.7526731119269416,
+      "metric": "MAE"
+    }
+  ]
+}

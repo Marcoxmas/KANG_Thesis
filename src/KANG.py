@@ -124,8 +124,7 @@ class KANG(nn.Module):
 			# Reshape global features to [batch_size, num_features]
 			# PyTorch Geometric concatenates global features, so we need to reshape
 			batch_size = x.size(0)
-			num_global_features = global_features.size(0) // batch_size
-			global_features = global_features.view(batch_size, num_global_features)
+			global_features = global_features.view(batch_size, -1)
 			x = torch.cat([x, global_features], dim=1)
 		
 		x = self.out_layer(x)
@@ -155,8 +154,7 @@ class KANG(nn.Module):
 			# Reshape global features to [batch_size, num_features]
 			# PyTorch Geometric concatenates global features, so we need to reshape
 			batch_size = x.size(0)
-			num_global_features = global_features.size(0) // batch_size
-			global_features = global_features.view(batch_size, num_global_features)
+			global_features = global_features.view(batch_size, -1)
 			x = torch.cat([x, global_features], dim=1)
 
 		return x

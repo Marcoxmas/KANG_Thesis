@@ -85,8 +85,14 @@ def graph_classification(args, return_history=False):
 		dataset = HIVGraphDataset(root=dataset_path, use_global_features=args.use_global_features)
 		if args.use_global_features:
 			print("Using global molecular features")
+	elif args.dataset_name == "TOXCAST":
+		dataset_path = f'./dataset/TOXCAST_{args.target_column}'
+		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features)
+		if args.use_global_features:
+			print("Using global molecular features")
 	else:
-		dataset_path = f'./dataset/TOXCAST_{args.dataset_name}'
+		# Fallback for other datasets
+		dataset_path = f'./dataset/{args.dataset_name}'
 		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.dataset_name, use_global_features=args.use_global_features)
 		if args.use_global_features:
 			print("Using global molecular features")
@@ -299,6 +305,9 @@ def graph_classification(args, return_history=False):
 	else:
 		print('Test ROC-AUC: Not available (only one class present or scikit-learn not installed)')
 
+	# Determine which test metric to return based on args.use_roc_auc preference
+	test_metric = test_roc_auc if (args.use_roc_auc and test_roc_auc is not None) else test_acc
+
 	# # ---------------------------
 	# # Plot and save the training metrics:
 	# # ---------------------------
@@ -333,9 +342,9 @@ def graph_classification(args, return_history=False):
 	# plt.close(fig)
 
 	if return_history:
-		return best_val_acc, train_losses, val_metrics
+		return best_val_acc, train_losses, val_metrics, test_metric  # Return validation score for optimization, test metric separately
 	else:
-		return best_val_acc
+		return best_val_acc, test_metric  # Return validation score for optimization, test metric separately
 
 def main():
 	args = get_args()

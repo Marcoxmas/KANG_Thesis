@@ -1,0 +1,18 @@
+{
+    "lr": 0.0011349198846647556,
+    "wd": 0.00018862049293664278,
+    "hidden_channels": 256,
+    "layers": 6,
+    "dropout": 0.17953977051971345,
+    "num_grids": 12,
+    "batch_size": 128,
+    "gamma": 0.7410113675039185,
+    "use_subset": false,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "TOX21_p53_BLA_p3_ch1",
+    "best_value": 0.811137040315442,
+    "n_trials": 20
+}

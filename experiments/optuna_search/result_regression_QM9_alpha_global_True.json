@@ -1,0 +1,19 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "alpha",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0027114880883618267,
+        "wd": 5.839378952590743e-05,
+        "hidden_channels": 128,
+        "layers": 4,
+        "dropout": 0.10768834444004977,
+        "num_grids": 12,
+        "batch_size": 256,
+        "gamma": 1.6238813464695419
+    },
+    "validation_score": 1.05848004296422,
+    "final_test_metric": 0.7276357974646226,
+    "n_trials": 20
+}

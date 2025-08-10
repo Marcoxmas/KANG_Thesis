@@ -1,0 +1,18 @@
+{
+    "lr": 0.0010856353035803665,
+    "wd": 0.00010998860795306814,
+    "hidden_channels": 64,
+    "layers": 3,
+    "dropout": 0.3146144760398429,
+    "num_grids": 12,
+    "batch_size": 256,
+    "gamma": 2.484501491787357,
+    "use_subset": true,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "homo",
+    "best_value": 0.008069524279562756,
+    "n_trials": 20
+}

@@ -17,7 +17,7 @@ def get_args():
     parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, n_trials=20):
     def objective(trial):
         try:
             import argparse
@@ -33,8 +33,8 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.batch_size = trial.suggest_categorical("batch_size", [64, 128, 256])
             args.gamma = trial.suggest_float("gamma", 0.5, 2.5)
             args.grid_min = 0
-            args.grid_max = 1.1 #2.1 if classification else 1.1
-            args.epochs = 50
+            args.grid_max = 2.1 if task_type == "classification" else 1.1
+            args.epochs = 100
             args.patience = 30
             args.log_freq = args.epochs // 10
             args.use_weighted_loss = True
@@ -46,18 +46,18 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
 
             if task_type == "classification":
                 print("Running classification with:", args)
-                best_val_acc = graph_classification(args)
+                best_val_acc, test_metric = graph_classification(args)
                 # Check for invalid results
                 if best_val_acc is None or np.isnan(best_val_acc) or np.isinf(best_val_acc):
                     raise ValueError("Invalid validation accuracy returned")
-                return best_val_acc  # maximize accuracy
+                return best_val_acc  # maximize accuracy (use validation for optimization)
             elif task_type == "regression":
                 print("Running regression with:", args)
-                best_val_score = graph_regression(args)
+                best_val_score, test_metric = graph_regression(args)
                 # Check for invalid results
                 if best_val_score is None or np.isnan(best_val_score) or np.isinf(best_val_score):
                     raise ValueError("Invalid validation score returned")
-                return best_val_score  # minimize MAE
+                return best_val_score  # minimize MAE (use validation for optimization)
         except Exception as e:
             print(f"Trial failed with error: {e}")
             # Return a penalty value instead of raising
@@ -66,23 +66,39 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             else:
                 return float('inf')  # Worst possible MAE
     study = optuna.create_study(direction="minimize" if task_type == "regression" else "maximize")
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=n_trials)
+
+    # Create unique filename for best parameters
+    results_dir = "experiments/optuna_search"
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # Create unique filename based on dataset and target
+    param_file = f"{results_dir}/best_params_{task_type}_{dataset_name}"
+    if target_column:
+        param_file += f"_{target_column}"
+    param_file += f"_global_{use_global_features}.json"
 
     # Save best hyperparameters
-    os.makedirs("experiments/hparam_search", exist_ok=True)
-    with open("experiments/hparam_search/best_trial.json", "w") as f:
+    with open(param_file, "w") as f:
         best_params = study.best_trial.params.copy()
         best_params["use_subset"] = use_subset
         best_params["subset_ratio"] = subset_ratio
+        best_params["use_global_features"] = use_global_features
+        best_params["task_type"] = task_type
+        best_params["dataset_name"] = dataset_name
+        best_params["target_column"] = target_column
+        best_params["best_value"] = study.best_value
+        best_params["n_trials"] = n_trials
         json.dump(best_params, f, indent=4)
 
-    print("\nBest hyperparameters:")
+    print(f"\nBest hyperparameters saved to: {param_file}")
+    print("Best hyperparameters:")
     print(study.best_trial.params)
     if use_subset:
         print(f"Note: Hyperparameters found using {subset_ratio*100:.0f}% of the dataset for faster tuning.")
     
-    # Run the best trial again to get training history for plotting
-    print("\nRunning best hyperparameters again on FULL dataset to generate training plots...")
+    # Run the best trial again to get final test performance on FULL dataset
+    print("\nRunning best hyperparameters on FULL dataset to get final test performance...")
     import argparse
     best_args = argparse.Namespace()
     best_args.dataset_name = dataset_name
@@ -93,8 +109,8 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         setattr(best_args, param, value)
     
     # Set fixed parameters - DISABLE subset for final training
-    best_args.grid_min = -1.1
-    best_args.grid_max = 1.1
+    best_args.grid_min = 0
+    best_args.grid_max = 2.1 if task_type == "classification" else 1.1
     best_args.epochs = 200
     best_args.patience = 50
     best_args.log_freq = best_args.epochs // 10
@@ -105,19 +121,73 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     best_args.subset_ratio = 1.0
     best_args.use_global_features = use_global_features
     
+    final_test_metric = None
+    
     if task_type == "classification":
         try:
-            best_val_acc, train_losses, val_metrics = graph_classification(best_args, return_history=True)
+            best_val_acc, train_losses, val_metrics, final_test_metric = graph_classification(best_args, return_history=True)
             plot_training_metrics(train_losses, val_metrics, task_type, dataset_name)
         except Exception as e:
             print(f"Warning: Could not generate training plots for classification: {e}")
+            try:
+                best_val_acc, final_test_metric = graph_classification(best_args)
+            except Exception as e2:
+                print(f"Error getting final test metric: {e2}")
     elif task_type == "regression":
         try:
-            best_val_score, train_losses, val_metrics = graph_regression(best_args, return_history=True)
+            best_val_score, train_losses, val_metrics, final_test_metric = graph_regression(best_args, return_history=True)
             plot_training_metrics(train_losses, val_metrics, task_type, dataset_name, target_column)
         except Exception as e:
             print(f"Warning: Could not generate training plots for regression: {e}")
+            try:
+                best_val_score, final_test_metric = graph_regression(best_args)
+            except Exception as e2:
+                print(f"Error getting final test metric: {e2}")
+
+    # Save final result with test metric
+    result_data = {
+        "task_type": task_type,
+        "dataset_name": dataset_name,
+        "target_column": target_column,
+        "use_global_features": use_global_features,
+        "best_params": study.best_trial.params,
+        "validation_score": study.best_value,
+        "final_test_metric": final_test_metric,
+        "n_trials": n_trials
+    }
+    
+    result_file = f"{results_dir}/result_{task_type}_{dataset_name}"
+    if target_column:
+        result_file += f"_{target_column}"
+    result_file += f"_global_{use_global_features}.json"
+    
+    with open(result_file, "w") as f:
+        json.dump(result_data, f, indent=4)
+    
+    print(f"Final results saved to: {result_file}")
+    print(f"Final test metric: {final_test_metric}")
+    
+    return final_test_metric, study.best_trial.params
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Hyperparameter Optimization with Optuna")
+    parser.add_argument("--task", type=str, choices=["classification", "regression"], required=True, help="Task type")
+    parser.add_argument("--dataset_name", type=str, required=True, help="Dataset name")
+    parser.add_argument("--target_column", type=str, default="mu", help="Target column for regression tasks")
+    parser.add_argument("--use_subset", action="store_true", help="Use a smaller subset of the dataset during tuning")
+    parser.add_argument("--subset_ratio", type=float, default=0.3, help="Ratio of dataset to use for subset (default: 0.3)")
+    parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+    parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (default: 20)")
+    return parser.parse_args()
 
 if __name__ == "__main__":
     args = get_args()
-    optuna_search(args.task, args.dataset_name, args.target_column, args.use_subset, args.subset_ratio, args.use_global_features)
+    final_metric, best_params = optuna_search(
+        args.task, 
+        args.dataset_name, 
+        args.target_column, 
+        args.use_subset, 
+        args.subset_ratio, 
+        args.use_global_features,
+        args.n_trials
+    )

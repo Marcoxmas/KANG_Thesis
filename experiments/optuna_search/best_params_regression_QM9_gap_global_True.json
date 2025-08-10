@@ -1,0 +1,18 @@
+{
+    "lr": 0.001141869782822785,
+    "wd": 3.0406757774074158e-05,
+    "hidden_channels": 64,
+    "layers": 2,
+    "dropout": 0.12325673909669121,
+    "num_grids": 12,
+    "batch_size": 256,
+    "gamma": 1.779434907301416,
+    "use_subset": true,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "gap",
+    "best_value": 0.011146008793730289,
+    "n_trials": 20
+}

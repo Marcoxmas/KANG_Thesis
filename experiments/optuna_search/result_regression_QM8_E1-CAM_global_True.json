@@ -1,0 +1,19 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM8",
+    "target_column": "E1-CAM",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0010876434046283056,
+        "wd": 0.00014067341387219204,
+        "hidden_channels": 64,
+        "layers": 7,
+        "dropout": 0.4931724251301766,
+        "num_grids": 12,
+        "batch_size": 256,
+        "gamma": 1.7528155526467764
+    },
+    "validation_score": 0.01116479312380155,
+    "final_test_metric": 0.01155326950053374,
+    "n_trials": 20
+}

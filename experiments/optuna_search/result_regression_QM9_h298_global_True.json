@@ -1,0 +1,19 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "h298",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0026707128045036763,
+        "wd": 5.4793861639538834e-05,
+        "hidden_channels": 64,
+        "layers": 3,
+        "dropout": 0.2227372940307485,
+        "num_grids": 14,
+        "batch_size": 64,
+        "gamma": 0.9471682399083399
+    },
+    "validation_score": 4.657254109306941,
+    "final_test_metric": 2.431006700651986,
+    "n_trials": 20
+}

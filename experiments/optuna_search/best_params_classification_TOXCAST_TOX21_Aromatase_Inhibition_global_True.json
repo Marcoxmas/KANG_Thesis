@@ -1,0 +1,18 @@
+{
+    "lr": 0.004423736043219903,
+    "wd": 0.0003102388937503289,
+    "hidden_channels": 128,
+    "layers": 2,
+    "dropout": 0.30329206971526407,
+    "num_grids": 10,
+    "batch_size": 64,
+    "gamma": 1.016101902211009,
+    "use_subset": false,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "TOX21_Aromatase_Inhibition",
+    "best_value": 0.8469471104758015,
+    "n_trials": 20
+}

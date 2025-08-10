@@ -1,0 +1,18 @@
+{
+    "lr": 0.0017556206889918753,
+    "wd": 0.0008035079776956693,
+    "hidden_channels": 128,
+    "layers": 3,
+    "dropout": 0.14807778669137883,
+    "num_grids": 10,
+    "batch_size": 256,
+    "gamma": 1.6158918109137508,
+    "use_subset": false,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "classification",
+    "dataset_name": "HIV",
+    "target_column": "mu",
+    "best_value": 0.8175729030620038,
+    "n_trials": 20
+}

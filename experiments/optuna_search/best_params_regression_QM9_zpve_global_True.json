@@ -1,0 +1,18 @@
+{
+    "lr": 0.0011479896442791067,
+    "wd": 1.1727707184865165e-05,
+    "hidden_channels": 256,
+    "layers": 3,
+    "dropout": 0.10057171165244477,
+    "num_grids": 16,
+    "batch_size": 256,
+    "gamma": 0.8785412623493793,
+    "use_subset": true,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "zpve",
+    "best_value": 0.0032824235240696,
+    "n_trials": 20
+}

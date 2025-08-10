@@ -1,0 +1,19 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "gap",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.001141869782822785,
+        "wd": 3.0406757774074158e-05,
+        "hidden_channels": 64,
+        "layers": 2,
+        "dropout": 0.12325673909669121,
+        "num_grids": 12,
+        "batch_size": 256,
+        "gamma": 1.779434907301416
+    },
+    "validation_score": 0.011146008793730289,
+    "final_test_metric": 0.009848720727945274,
+    "n_trials": 20
+}

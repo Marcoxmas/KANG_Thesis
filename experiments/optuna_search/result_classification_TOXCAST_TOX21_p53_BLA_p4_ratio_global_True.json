@@ -1,0 +1,19 @@
+{
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "TOX21_p53_BLA_p4_ratio",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0045776420591807036,
+        "wd": 2.3767725576733703e-05,
+        "hidden_channels": 32,
+        "layers": 3,
+        "dropout": 0.2328985419295524,
+        "num_grids": 12,
+        "batch_size": 128,
+        "gamma": 2.0483690280395175
+    },
+    "validation_score": 0.8108707754781241,
+    "final_test_metric": 0.7737142163998059,
+    "n_trials": 20
+}

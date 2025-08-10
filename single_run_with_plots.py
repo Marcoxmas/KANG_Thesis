@@ -16,32 +16,37 @@ def get_args():
     parser.add_argument('--num_grids', type=int, default=10, help='Number of grids for KAN layers')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     parser.add_argument('--gamma', type=float, default=1.0, help='Gamma parameter for learning rate scheduling')
+    parser.add_argument('--epochs', type=int, default=1000, help='Number of training epochs')
+    parser.add_argument('--patience', type=int, default=300, help='Early stopping patience')
     return parser.parse_args()
 
 def main():
     args = get_args()
     
     # Set constant arguments
-    args.grid_min = -1.1
-    args.grid_max = 1.1
-    args.epochs = 1000
-    args.patience = 300
+    args.grid_min = 0
+    if args.task == "classification":
+        args.grid_max = 2.1
+    else:
+        args.grid_max = 1.1
+    
     args.log_freq = args.epochs // 10
     args.use_weighted_loss = True
     args.use_roc_auc = True
     args.return_history = True  # Flag to return training history
     args.use_subset = False  # Use full dataset for final training
     args.subset_ratio = 1.0
+    args.use_global_features = True  # Use global molecular features
 
     if args.task == "classification":
         try:
-            _, train_losses, val_metrics = graph_classification(args, return_history=True)
+            _, train_losses, val_metrics, _ = graph_classification(args, return_history=True)
             plot_training_metrics(train_losses, val_metrics, args.task, args.dataset_name)
         except Exception as e:
             print(f"Warning: Could not generate training plots for classification: {e}")
     elif args.task == "regression":
         try:
-            _, train_losses, val_metrics = graph_regression(args, return_history=True)
+            _, train_losses, val_metrics, _ = graph_regression(args, return_history=True)
             plot_training_metrics(train_losses, val_metrics, args.task, args.dataset_name, args.target_column)
         except Exception as e:
             print(f"Warning: Could not generate training plots for regression: {e}")

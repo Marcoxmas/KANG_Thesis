@@ -212,9 +212,9 @@ def graph_regression(args, return_history=False):
 	print(f'Test RMSE: {test_rmse:.4f}, Test MAE: {test_mae:.4f}')
 
 	if return_history:
-		return best_val_score, train_losses, val_metrics
+		return best_val_score, train_losses, val_metrics, test_mae  # Return validation score for optimization, test MAE separately
 	else:
-		return best_val_score
+		return best_val_score, test_mae  # Return validation score for optimization, test MAE separately
 
 
 def main():

@@ -1,0 +1,18 @@
+{
+    "lr": 0.0029971442143571676,
+    "wd": 0.00027593791364823327,
+    "hidden_channels": 128,
+    "layers": 1,
+    "dropout": 0.22598783185748852,
+    "num_grids": 10,
+    "batch_size": 256,
+    "gamma": 1.6693696884336262,
+    "use_subset": true,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "regression",
+    "dataset_name": "QM8",
+    "target_column": "f1-PBE0",
+    "best_value": 0.021780453622341156,
+    "n_trials": 20
+}

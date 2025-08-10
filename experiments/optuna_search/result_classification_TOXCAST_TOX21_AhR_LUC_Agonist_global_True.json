@@ -1,0 +1,19 @@
+{
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "TOX21_AhR_LUC_Agonist",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0015007923544276176,
+        "wd": 8.243679282769104e-05,
+        "hidden_channels": 128,
+        "layers": 6,
+        "dropout": 0.4966144299350834,
+        "num_grids": 12,
+        "batch_size": 64,
+        "gamma": 2.18782577274764
+    },
+    "validation_score": 0.9267800848875504,
+    "final_test_metric": 0.881384892086331,
+    "n_trials": 20
+}

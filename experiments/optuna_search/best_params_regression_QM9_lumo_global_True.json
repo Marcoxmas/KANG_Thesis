@@ -1,0 +1,18 @@
+{
+    "lr": 0.0015016087983980519,
+    "wd": 5.5362523082448324e-05,
+    "hidden_channels": 32,
+    "layers": 2,
+    "dropout": 0.20629193809323298,
+    "num_grids": 10,
+    "batch_size": 256,
+    "gamma": 1.0296219064468677,
+    "use_subset": true,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "lumo",
+    "best_value": 0.00922936893766746,
+    "n_trials": 20
+}

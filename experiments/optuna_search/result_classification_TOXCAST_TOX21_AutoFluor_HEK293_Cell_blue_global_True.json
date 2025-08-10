@@ -1,0 +1,19 @@
+{
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "TOX21_AutoFluor_HEK293_Cell_blue",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.006778600690139204,
+        "wd": 3.621064305081972e-05,
+        "hidden_channels": 32,
+        "layers": 6,
+        "dropout": 0.4954457422833137,
+        "num_grids": 14,
+        "batch_size": 256,
+        "gamma": 1.2579675793637828
+    },
+    "validation_score": 0.9786357786357786,
+    "final_test_metric": 0.8164950664950665,
+    "n_trials": 20
+}

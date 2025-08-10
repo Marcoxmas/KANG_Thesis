@@ -156,17 +156,6 @@ def analyze_global_features_impact(results):
     
     return pd.DataFrame(comparisons)
 
-def create_toxcast_descriptions():
-    """Create descriptions for the ToxCast assays used in the thesis."""
-    descriptions = {
-        'TOX21_AhR_LUC_Agonist': 'Measures the activation of the Aryl hydrocarbon Receptor pathway',
-        'TOX21_Aromatase_Inhibition': 'Assesses inhibition of the aromatase enzyme, important in hormone biosynthesis', 
-        'TOX21_AutoFluor_HEK293_Cell_blue': 'Control task to detect autofluorescence in HEK293 cells under blue channel excitation',
-        'TOX21_p53_BLA_p3_ch1': 'Measures activation of the tumor suppressor protein p53 using a reporter assay',
-        'TOX21_p53_BLA_p4_ratio': 'Additional reporter-based p53 activation task capturing response ratios'
-    }
-    return descriptions
-
 def generate_visualizations(stats_df, comparisons_df, output_dir):
     """Generate comprehensive visualizations."""
     os.makedirs(output_dir, exist_ok=True)
@@ -315,7 +304,6 @@ def generate_visualizations(stats_df, comparisons_df, output_dir):
 
 def generate_reports(stats_df, comparisons_df, results, output_dir):
     """Generate comprehensive text reports."""
-    toxcast_descriptions = create_toxcast_descriptions()
     
     # Main summary report
     with open(os.path.join(output_dir, 'comprehensive_summary.txt'), 'w') as f:
@@ -355,13 +343,6 @@ def generate_reports(stats_df, comparisons_df, results, output_dir):
             f.write(f"  Best improvement: {improvements.max():.2f}% ({comparisons_df.loc[improvements.idxmax(), 'test_name']})\n")
             f.write(f"  Worst performance: {improvements.min():.2f}% ({comparisons_df.loc[improvements.idxmin(), 'test_name']})\n\n")
         
-        # ToxCast assay descriptions
-        f.write("TOXCAST ASSAY DESCRIPTIONS:\n")
-        f.write("-" * 40 + "\n")
-        for assay, description in toxcast_descriptions.items():
-            f.write(f"{assay}:\n")
-            f.write(f"  {description}\n\n")
-        
         # Detailed results by dataset
         f.write("DETAILED RESULTS BY DATASET\n")
         f.write("-" * 40 + "\n\n")
@@ -377,10 +358,6 @@ def generate_reports(stats_df, comparisons_df, results, output_dir):
                 for target in sorted(task_data['target'].unique()):
                     target_data = task_data[task_data['target'] == target]
                     f.write(f"    Target: {target}\n")
-                    
-                    # Add description for ToxCast assays
-                    if target in toxcast_descriptions:
-                        f.write(f"    Description: {toxcast_descriptions[target]}\n")
                     
                     for _, row in target_data.iterrows():
                         f.write(f"      {row['config'].replace('_', ' ').title()}:\n")

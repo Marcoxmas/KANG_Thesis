@@ -1,0 +1,19 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM8",
+    "target_column": "E2-PBE0",
+    "use_global_features": true,
+    "best_params": {
+        "lr": 0.0010044282604221761,
+        "wd": 0.0009857255999704726,
+        "hidden_channels": 64,
+        "layers": 1,
+        "dropout": 0.11131877139265992,
+        "num_grids": 10,
+        "batch_size": 256,
+        "gamma": 1.7245040305364312
+    },
+    "validation_score": 0.01064694051941236,
+    "final_test_metric": 0.012277217685348459,
+    "n_trials": 20
+}

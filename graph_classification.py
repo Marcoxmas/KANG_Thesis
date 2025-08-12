@@ -1,16 +1,19 @@
 import argparse
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
+import json
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from torch_geometric.datasets import TUDataset
+from sklearn.metrics import roc_auc_score
 from toxcast_dataset import ToxCastGraphDataset
 from hiv_dataset import HIVGraphDataset
 
 from src.KANG import KANG
+from src.KANG_MultiTask import KANG_MultiTask
 from src.utils import set_seed
 
 # Mixed precision training
@@ -70,9 +73,19 @@ def get_args():
 	parser.add_argument("--gamma", type=float, default=1.0, help="Gamma parameter for Focal Loss (default: 1.0)")
 	parser.add_argument("--return_history", action="store_true", help="Return training history for plotting")
 	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+	# Multi-task arguments
+	parser.add_argument("--multitask", action="store_true", help="Use multi-task learning for ToxCast dataset")
+	parser.add_argument("--multitask_assays", type=str, nargs='+', default=None, 
+	                   help="Specific assays for multi-task learning. If None, uses all available assays")
+	parser.add_argument("--task_weights", type=str, default=None, 
+	                   help="JSON string with task weights for multi-task loss (e.g., '{\"task1\": 1.0, \"task2\": 2.0}')")
 	return parser.parse_args()
 
 def graph_classification(args, return_history=False):
+	# Check if multi-task learning is enabled
+	if args.multitask and args.dataset_name == "TOXCAST":
+		return graph_classification_multitask(args, return_history)
+	
 	# Determine the dataset type based on the dataset name
 	if args.dataset_name in ["MUTAG", "PROTEINS"]:
 		dataset_path = f'./dataset/{args.dataset_name}'
@@ -345,6 +358,368 @@ def graph_classification(args, return_history=False):
 		return best_val_acc, train_losses, val_metrics, test_metric  # Return validation score for optimization, test metric separately
 	else:
 		return best_val_acc, test_metric  # Return validation score for optimization, test metric separately
+
+def graph_classification_multitask(args, return_history=False):
+	"""Multi-task graph classification for ToxCast dataset"""
+	import json
+	from toxcast_dataset import ToxCastMultiTaskDataset, get_available_assays
+	
+	print("Multi-Task Graph Classification Mode")
+	print("=" * 50)
+	
+	# Determine which assays to use
+	if args.multitask_assays is not None:
+		target_assays = args.multitask_assays
+		print(f"Using specified assays: {target_assays}")
+	else:
+		# Use a default set of well-populated assays
+		target_assays = [
+			'TOX21_AhR_LUC_Agonist',
+			'TOX21_Aromatase_Inhibition', 
+			'TOX21_AutoFluor_HEK293_Cell_blue',
+			'TOX21_p53_BLA_p3_ch1',
+			'TOX21_p53_BLA_p4_ratio'
+		]
+		print(f"Using default assay set ({len(target_assays)} assays):")
+		for i, assay in enumerate(target_assays):
+			print(f"  {i+1}. {assay}")
+	
+	# Load multi-task dataset
+	# Create a short hash
+	assay_str = " ".join(sorted(target_assays))
+	assay_hash = str(sum(ord(c) for c in assay_str) % 10**8)
+	dataset_path = f'./dataset/TOXCAST_multitask_{assay_hash}'
+	dataset = ToxCastMultiTaskDataset(
+		root=dataset_path,
+		target_columns=target_assays,
+		use_global_features=args.use_global_features
+	)
+	
+	print(f"Dataset loaded: {len(dataset)} molecules, {dataset.get_num_tasks()} tasks")
+	if args.use_global_features:
+		print("Using global molecular features")
+	
+	# Apply subset for faster hyperparameter tuning if specified
+	if getattr(args, "use_subset", False):
+		subset_size = int(len(dataset) * getattr(args, "subset_ratio", 0.3))
+		dataset = dataset[:subset_size]
+		print(f"Using subset of {subset_size} samples ({getattr(args, 'subset_ratio', 0.3)*100:.0f}% of full dataset) for faster tuning")
+
+	shuffled_dataset = dataset.shuffle()
+	train_size = int(0.8 * len(dataset))
+	val_size = int(0.1 * len(dataset))
+	train_dataset = shuffled_dataset[:train_size]
+	val_dataset = shuffled_dataset[train_size:train_size + val_size]
+	test_dataset = shuffled_dataset[train_size + val_size:]
+	
+	# DataLoader settings - reduce workers on Windows due to RDKit pickling issues
+	num_workers = 0 if args.use_global_features else 4
+	train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+	                         pin_memory=True, num_workers=num_workers, persistent_workers=num_workers>0)
+	val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
+	                       pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
+	test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False,
+	                        pin_memory=True, num_workers=min(num_workers, 2), persistent_workers=num_workers>0)
+
+	# Parse task weights if provided
+	task_weights = None
+	if args.task_weights:
+		try:
+			task_weights_dict = json.loads(args.task_weights)
+			task_weights = [task_weights_dict.get(assay, 1.0) for assay in target_assays]
+			task_weights = torch.tensor(task_weights).to(device)
+			print(f"Using custom task weights: {task_weights.tolist()}")
+		except:
+			print("Warning: Could not parse task weights, using uniform weights")
+			task_weights = None
+
+	# Handle class imbalance - for multi-task, we could compute per-task weights but keep simple for now
+	criterion = nn.CrossEntropyLoss()
+	if args.use_roc_auc:
+		print("Note: Multi-task with ROC-AUC evaluation")
+
+	# Create multi-task model
+	model = KANG_MultiTask(
+		dataset.num_node_features,
+		args.hidden_channels,
+		len(target_assays),  # Number of tasks
+		args.layers,
+		args.grid_min,
+		args.grid_max,
+		args.num_grids,
+		args.dropout,
+		device=device,
+		use_global_features=args.use_global_features,
+	).to(device)
+	
+	print(f"Multi-task model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+	
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+
+	# Initialize mixed precision scaler if available
+	scaler = GradScaler() if AMP_AVAILABLE and device.type == 'cuda' else None
+	use_amp = scaler is not None
+
+	best_val_metric = 0
+	early_stop_counter = 0
+	best_epoch = -1
+	best_model_path = f"./experiments/graph_classification/gkan_multitask.pth"
+
+	# Initialize history tracking if requested
+	train_losses = [] if return_history else None
+	val_metrics = [] if return_history else None
+
+	print(f"Training multi-task model for {args.epochs} epochs...")
+	print(f"Training with mixed precision: {use_amp}")
+	
+	for epoch in range(args.epochs):
+		model.train()
+		epoch_loss = 0
+		total_valid_batches = 0
+		
+		for data in train_loader:
+			optimizer.zero_grad()
+			data = data.to(device, non_blocking=True)
+			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			
+			# Reshape labels for multi-task
+			num_graphs = data.batch.max().item() + 1
+			labels = data.y.view(num_graphs, len(target_assays))
+			
+			if use_amp:
+				with autocast():
+					outputs = model(data.x, data.edge_index, data.batch, global_features)
+					# Multi-task loss computation
+					total_loss = 0
+					valid_tasks = 0
+					
+					for task_idx in range(len(target_assays)):
+						task_mask = ~torch.isnan(labels[:, task_idx])
+						if task_mask.sum() > 0:
+							task_pred = outputs[task_mask, task_idx]
+							task_target = labels[task_mask, task_idx].long()
+							task_loss = criterion(task_pred, task_target)
+							weight = task_weights[task_idx] if task_weights is not None else 1.0
+							total_loss += weight * task_loss
+							valid_tasks += 1
+					
+					if valid_tasks > 0:
+						avg_loss = total_loss / valid_tasks
+						epoch_loss += avg_loss.item()
+						total_valid_batches += 1
+				
+				if valid_tasks > 0:
+					scaler.scale(avg_loss).backward()
+					scaler.step(optimizer)
+					scaler.update()
+			else:
+				outputs = model(data.x, data.edge_index, data.batch, global_features)
+				# Multi-task loss computation
+				total_loss = 0
+				valid_tasks = 0
+				
+				for task_idx in range(len(target_assays)):
+					task_mask = ~torch.isnan(labels[:, task_idx])
+					if task_mask.sum() > 0:
+						task_pred = outputs[task_mask, task_idx]
+						task_target = labels[task_mask, task_idx].long()
+						task_loss = criterion(task_pred, task_target)
+						weight = task_weights[task_idx] if task_weights is not None else 1.0
+						total_loss += weight * task_loss
+						valid_tasks += 1
+				
+				if valid_tasks > 0:
+					avg_loss = total_loss / valid_tasks
+					epoch_loss += avg_loss.item()
+					total_valid_batches += 1
+					avg_loss.backward()
+					optimizer.step()
+
+		# Validation evaluation
+		model.eval()
+		with torch.no_grad():
+			if args.use_roc_auc:
+				# Multi-task ROC-AUC evaluation
+				from sklearn.metrics import roc_auc_score
+				task_aucs = []
+				
+				for task_idx in range(len(target_assays)):
+					all_probs = []
+					all_targets = []
+					
+					for data in val_loader:
+						data = data.to(device, non_blocking=True)
+						global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+						
+						num_graphs = data.batch.max().item() + 1
+						labels = data.y.view(num_graphs, len(target_assays))
+						
+						if use_amp:
+							with autocast():
+								outputs = model(data.x, data.edge_index, data.batch, global_features)
+						else:
+							outputs = model(data.x, data.edge_index, data.batch, global_features)
+						
+						# Get probabilities for this task
+						task_mask = ~torch.isnan(labels[:, task_idx])
+						if task_mask.sum() > 0:
+							probs = torch.softmax(outputs[task_mask, task_idx], dim=1)[:, 1].cpu().numpy()
+							targets = labels[task_mask, task_idx].cpu().numpy()
+							all_probs.extend(probs)
+							all_targets.extend(targets)
+					
+					if len(set(all_targets)) > 1:  # Need both classes
+						task_auc = roc_auc_score(all_targets, all_probs)
+						task_aucs.append(task_auc)
+					else:
+						task_aucs.append(0.0)
+				
+				val_metric = sum(task_aucs) / len(task_aucs)  # Average AUC across tasks
+			else:
+				# Multi-task accuracy evaluation
+				task_accs = []
+				
+				for task_idx in range(len(target_assays)):
+					correct = 0
+					total = 0
+					
+					for data in val_loader:
+						data = data.to(device, non_blocking=True)
+						global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+						
+						num_graphs = data.batch.max().item() + 1
+						labels = data.y.view(num_graphs, len(target_assays))
+						
+						if use_amp:
+							with autocast():
+								outputs = model(data.x, data.edge_index, data.batch, global_features)
+						else:
+							outputs = model(data.x, data.edge_index, data.batch, global_features)
+						
+						# Get predictions for this task
+						task_mask = ~torch.isnan(labels[:, task_idx])
+						if task_mask.sum() > 0:
+							pred = outputs[task_mask, task_idx].argmax(dim=1)
+							target = labels[task_mask, task_idx].long()
+							correct += (pred == target).sum().item()
+							total += target.size(0)
+					
+					task_acc = correct / total if total > 0 else 0
+					task_accs.append(task_acc)
+				
+				val_metric = sum(task_accs) / len(task_accs)  # Average accuracy across tasks
+
+		# Track training history if requested
+		if return_history:
+			avg_epoch_loss = epoch_loss / total_valid_batches if total_valid_batches > 0 else 0
+			train_losses.append(avg_epoch_loss)
+			val_metrics.append(val_metric)
+		
+		if val_metric > best_val_metric:
+			best_epoch = epoch
+			best_val_metric = val_metric
+			torch.save(model.state_dict(), best_model_path)
+			early_stop_counter = 0
+		else:
+			early_stop_counter += 1
+		
+		if early_stop_counter >= args.patience:
+			print(f"Early stopping at epoch {epoch}")
+			break
+
+		if epoch % args.log_freq == 0 or epoch == args.epochs - 1:
+			metric_name = "Val Multi-Task ROC-AUC" if args.use_roc_auc else "Val Multi-Task Acc"
+			avg_epoch_loss = epoch_loss / total_valid_batches if total_valid_batches > 0 else 0
+			print(f"Epoch {epoch:03d}: Train Loss: {avg_epoch_loss:.4f}, {metric_name}: {val_metric:.4f}")
+
+	# Load best model and evaluate on test set
+	print(f"\nBest model saved at epoch {best_epoch} with validation metric: {best_val_metric:.4f}")
+	model.load_state_dict(torch.load(best_model_path))
+	model.eval()
+	
+	# Test evaluation
+	print("Evaluating on test set...")
+	with torch.no_grad():
+		if args.use_roc_auc:
+			# Multi-task test ROC-AUC
+			task_test_aucs = []
+			
+			for task_idx in range(len(target_assays)):
+				all_probs = []
+				all_targets = []
+				
+				for data in test_loader:
+					data = data.to(device, non_blocking=True)
+					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					
+					num_graphs = data.batch.max().item() + 1
+					labels = data.y.view(num_graphs, len(target_assays))
+					
+					if use_amp:
+						with autocast():
+							outputs = model(data.x, data.edge_index, data.batch, global_features)
+					else:
+						outputs = model(data.x, data.edge_index, data.batch, global_features)
+					
+					task_mask = ~torch.isnan(labels[:, task_idx])
+					if task_mask.sum() > 0:
+						probs = torch.softmax(outputs[task_mask, task_idx], dim=1)[:, 1].cpu().numpy()
+						targets = labels[task_mask, task_idx].cpu().numpy()
+						all_probs.extend(probs)
+						all_targets.extend(targets)
+				
+				if len(set(all_targets)) > 1:
+					task_auc = roc_auc_score(all_targets, all_probs)
+					task_test_aucs.append(task_auc)
+					print(f"  {target_assays[task_idx]}: AUC = {task_auc:.4f}")
+				else:
+					task_test_aucs.append(0.0)
+					print(f"  {target_assays[task_idx]}: AUC = N/A (single class)")
+			
+			test_metric = sum(task_test_aucs) / len(task_test_aucs)
+			print(f"Average Test ROC-AUC: {test_metric:.4f}")
+		else:
+			# Multi-task test accuracy
+			task_test_accs = []
+			
+			for task_idx in range(len(target_assays)):
+				correct = 0
+				total = 0
+				
+				for data in test_loader:
+					data = data.to(device, non_blocking=True)
+					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					
+					num_graphs = data.batch.max().item() + 1
+					labels = data.y.view(num_graphs, len(target_assays))
+					
+					if use_amp:
+						with autocast():
+							outputs = model(data.x, data.edge_index, data.batch, global_features)
+					else:
+						outputs = model(data.x, data.edge_index, data.batch, global_features)
+					
+					task_mask = ~torch.isnan(labels[:, task_idx])
+					if task_mask.sum() > 0:
+						pred = outputs[task_mask, task_idx].argmax(dim=1)
+						target = labels[task_mask, task_idx].long()
+						correct += (pred == target).sum().item()
+						total += target.size(0)
+				
+				task_acc = correct / total if total > 0 else 0
+				task_test_accs.append(task_acc)
+				print(f"  {target_assays[task_idx]}: Acc = {task_acc:.4f}")
+			
+			test_metric = sum(task_test_accs) / len(task_test_accs)
+			print(f"Average Test Accuracy: {test_metric:.4f}")
+
+	print("=" * 50)
+	print("Multi-Task Training Complete!")
+	
+	if return_history:
+		return best_val_metric, train_losses, val_metrics, test_metric
+	else:
+		return best_val_metric, test_metric
 
 def main():
 	args = get_args()

@@ -154,14 +154,6 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
         Returns whether this dataset includes global features.
         """
         return self.use_global_features
-    
-    @property
-    def processed_file_names(self):
-        """
-        Returns the list of processed file names that must be present in the processed directory.
-        """
-        suffix = "_with_global_features" if self.use_global_features else ""
-        return [f'data_{self.target_column}{suffix}.pt']
 
 
 # Backward compatibility: keep the original single-task class

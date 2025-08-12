@@ -1,0 +1,22 @@
+{
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "mu",
+    "use_global_features": true,
+    "multitask": true,
+    "multitask_assays": null,
+    "task_weights": null,
+    "best_params": {
+        "lr": 0.0035319278972248576,
+        "wd": 0.00017014963305026043,
+        "hidden_channels": 128,
+        "layers": 3,
+        "dropout": 0.3185378206753472,
+        "num_grids": 10,
+        "batch_size": 64,
+        "gamma": 0.9814548787645618
+    },
+    "validation_score": 0.8376026300944938,
+    "final_test_metric": 0.7951606858853705,
+    "n_trials": 10
+}

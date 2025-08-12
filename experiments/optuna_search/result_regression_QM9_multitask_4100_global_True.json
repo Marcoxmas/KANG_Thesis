@@ -1,0 +1,36 @@
+{
+    "task_type": "regression",
+    "dataset_name": "QM9",
+    "target_column": "mu",
+    "use_global_features": true,
+    "multitask": true,
+    "multitask_assays": null,
+    "multitask_targets": [
+        "mu",
+        "alpha",
+        "homo",
+        "lumo",
+        "gap",
+        "r2",
+        "zpve",
+        "u0",
+        "u298",
+        "h298",
+        "g298",
+        "cv"
+    ],
+    "task_weights": null,
+    "best_params": {
+        "lr": 0.006095341776656667,
+        "wd": 3.342337484863047e-05,
+        "hidden_channels": 64,
+        "layers": 4,
+        "dropout": 0.11390763658376776,
+        "num_grids": 12,
+        "batch_size": 128,
+        "gamma": 0.9966639417190266
+    },
+    "validation_score": 8.173773675662272,
+    "final_test_metric": 7.451727413997538,
+    "n_trials": 20
+}

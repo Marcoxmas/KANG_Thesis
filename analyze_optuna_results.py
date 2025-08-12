@@ -57,10 +57,26 @@ def analyze_optuna_results(results_dir="experiments/optuna_search"):
     results_summary = []
     
     for result in all_results:
+        # Handle multi-task information
+        multitask = result.get("multitask", False)
+        multitask_info = ""
+        
+        if multitask:
+            if result.get("multitask_assays"):
+                multitask_info = f"MT({len(result['multitask_assays'])} assays)"
+            elif result.get("multitask_targets"):
+                multitask_info = f"MT({len(result['multitask_targets'])} targets)"
+            else:
+                multitask_info = "MT(default)"
+        
         results_summary.append({
             "task_type": result.get("task_type"),
             "dataset_name": result.get("dataset_name"),
             "target_column": result.get("target_column"),
+            "multitask": multitask,
+            "multitask_info": multitask_info,
+            "multitask_assays": result.get("multitask_assays"),
+            "multitask_targets": result.get("multitask_targets"),
             "use_global_features": result.get("use_global_features"),
             "final_test_metric": result.get("final_test_metric"),
             "validation_score": result.get("validation_score"),
@@ -90,6 +106,8 @@ def analyze_optuna_results(results_dir="experiments/optuna_search"):
     summary_report.append(f"Unique datasets: {df_results['dataset_name'].nunique()}")
     summary_report.append(f"Regression experiments: {len(df_results[df_results['task_type'] == 'regression'])}")
     summary_report.append(f"Classification experiments: {len(df_results[df_results['task_type'] == 'classification'])}")
+    summary_report.append(f"Multi-task experiments: {len(df_results[df_results['multitask'] == True])}")
+    summary_report.append(f"Single-task experiments: {len(df_results[df_results['multitask'] == False])}")
     summary_report.append(f"With global features: {len(df_results[df_results['use_global_features'] == True])}")
     summary_report.append(f"Without global features: {len(df_results[df_results['use_global_features'] == False])}")
     summary_report.append("")
@@ -110,23 +128,31 @@ def analyze_optuna_results(results_dir="experiments/optuna_search"):
                 
             global_str = "with global" if use_global else "without global"
             
-            # Separate by task type
+            # Separate by task type and multi-task status
             for task_type in ['regression', 'classification']:
                 task_data = global_data[global_data['task_type'] == task_type]
                 if len(task_data) == 0:
                     continue
                 
-                # Calculate statistics
-                valid_metrics = task_data['final_test_metric'].dropna()
-                if len(valid_metrics) > 0:
-                    avg_metric = valid_metrics.mean()
-                    std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
-                    min_metric = valid_metrics.min()
-                    max_metric = valid_metrics.max()
+                # Separate single-task vs multi-task
+                for is_multitask in [False, True]:
+                    mt_data = task_data[task_data['multitask'] == is_multitask]
+                    if len(mt_data) == 0:
+                        continue
                     
-                    summary_report.append(f"  {task_type:12s} {global_str:15s}: "
-                                        f"avg={avg_metric:.4f} ±{std_metric:.4f} "
-                                        f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")
+                    mt_str = "multi-task" if is_multitask else "single-task"
+                    
+                    # Calculate statistics
+                    valid_metrics = mt_data['final_test_metric'].dropna()
+                    if len(valid_metrics) > 0:
+                        avg_metric = valid_metrics.mean()
+                        std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
+                        min_metric = valid_metrics.min()
+                        max_metric = valid_metrics.max()
+                        
+                        summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s}: "
+                                            f"avg={avg_metric:.4f} ±{std_metric:.4f} "
+                                            f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")
     
     # Results by dataset
     summary_report.append("\nDETAILED RESULTS BY DATASET:")
@@ -137,12 +163,22 @@ def analyze_optuna_results(results_dir="experiments/optuna_search"):
         summary_report.append(f"\n{dataset}:")
         
         for _, row in dataset_data.iterrows():
-            target_str = f" ({row['target_column']})" if row['target_column'] else ""
+            # Create target description
+            if row['multitask']:
+                if row['multitask_assays']:
+                    target_desc = f"MT-{len(row['multitask_assays'])}assays"
+                elif row['multitask_targets']:
+                    target_desc = f"MT-{len(row['multitask_targets'])}targets"
+                else:
+                    target_desc = "MT-default"
+            else:
+                target_desc = row['target_column'] if row['target_column'] else "N/A"
+            
             global_str = "with global" if row['use_global_features'] else "without global"
             metric = row['final_test_metric']
             metric_str = f"{metric:.4f}" if metric is not None else "FAILED"
             
-            summary_report.append(f"  {row['task_type']:12s}{target_str:20s} {global_str:15s}: {metric_str}")
+            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s}: {metric_str}")
     
     # Save summary report
     summary_file = os.path.join(results_dir, f"optuna_summary_{timestamp_str}.txt")
@@ -163,9 +199,9 @@ def analyze_optuna_results(results_dir="experiments/optuna_search"):
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze Optuna hyperparameter search results")
-    parser.add_argument("--results_dir", type=str, default="experiments/optuna_summaries", 
-                       help="Directory containing Optuna results (default: experiments/optuna_summaries)")
-    
+    parser.add_argument("--results_dir", type=str, default="experiments/optuna_search", 
+                       help="Directory containing Optuna results (default: experiments/optuna_search)")
+
     args = parser.parse_args()
     
     # Analyze results

@@ -37,6 +37,14 @@ class KANG(nn.Module):
 		self.use_global_features = use_global_features
 		self.convs			= nn.ModuleList()
 
+		# Store config for edge encoder lazy init
+		self._grid_min = grid_min
+		self._grid_max = grid_max
+		self._num_grids = num_grids
+		self._device = device
+		self._linspace = linspace
+		self._trainable_grid = trainable_grid
+
 		# Calculate final layer input dimension
 		final_input_dim = hidden_channels
 		if self.use_global_features:
@@ -102,15 +110,20 @@ class KANG(nn.Module):
 
 		self.layer_norms = nn.ModuleList([nn.LayerNorm(hidden_channels, elementwise_affine=False, bias=False) for _ in range(num_layers)])
 
-	def forward(self, x, edge_index, batch=None, global_features=None):
+	def forward(self, x, edge_index, batch=None, global_features=None, edge_attr=None):
 		x.requires_grad_(True)
-		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		# Add self-loops and extend edge_attr for gated message passing
+		if edge_attr is not None:
+			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+		else:
+			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
 		x = F.dropout(x, p=self.dropout, training=self.training)
 
 		res = None
 		for i, conv in enumerate(self.convs):
 			if self.residuals and i > 0: res = x  
-			x = conv(x, edge_index)
+			x = conv(x, edge_index, edge_attr)
 			x = self.layer_norms[i](x)
 			x = F.dropout(x, p=self.dropout, training=self.training)
 			if self.residuals and i > 0: x += res
@@ -130,17 +143,22 @@ class KANG(nn.Module):
 
 		return x
 	
-	def encode(self, x, edge_index, batch=None, global_features=None):
+	def encode(self, x, edge_index, batch=None, global_features=None, edge_attr=None):
 		x.requires_grad_(True)
 
-		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		# Add self-loops and extend edge_attr for encoding
+		if edge_attr is not None:
+			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+		else:
+			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
 		x = F.dropout(x, p=self.dropout, training=self.training)
 
 		res = None
 		for i, conv in enumerate(self.convs):
 			if self.residuals and i > 0: res = x  
 			x = F.dropout(x, p=self.dropout, training=self.training)
-			x = conv(x, edge_index)
+			x = conv(x, edge_index, edge_attr)
 			x = self.layer_norms[i](x)
 			if self.residuals and i > 0: x += res
 

@@ -156,14 +156,14 @@ Write-Host "====================================================================
 Write-Host "RUNNING MULTI-TASK OPTUNA SEARCHES" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-# QM8 multi-task regression (COMMENTED OUT - already completed)
-# Run-MultiTaskOptunaSearch -TaskType "regression" -DatasetName "QM8" -Targets $qm8Selected -TestNumber 1
+# QM8 multi-task regression
+Run-MultiTaskOptunaSearch -TaskType "regression" -DatasetName "QM8" -Targets $qm8Selected -TestNumber 1
 
 # QM9 multi-task regression
-Run-MultiTaskOptunaSearch -TaskType "regression" -DatasetName "QM9" -Targets $qm9Selected -TestNumber 1
+Run-MultiTaskOptunaSearch -TaskType "regression" -DatasetName "QM9" -Targets $qm9Selected -TestNumber 2
 
 # ToxCast multi-task classification
-Run-MultiTaskOptunaSearch -TaskType "classification" -DatasetName "TOXCAST" -Targets $toxcastSelected -TestNumber 2
+Run-MultiTaskOptunaSearch -TaskType "classification" -DatasetName "TOXCAST" -Targets $toxcastSelected -TestNumber 3
 
 $endTime = Get-Date
 $totalTime = $endTime - $startTime

@@ -1,6 +1,8 @@
-from typing import Union
+from typing import Union, Optional
 
+import torch
 from torch import Tensor
+import torch.nn as nn
 from torch_geometric.utils import spmm
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.typing import Adj, OptPairTensor, Size, SparseTensor
@@ -30,6 +32,14 @@ class KANGConv(MessagePassing):
 		super().__init__(**kwargs)
 
 		self.device = device
+		self.in_channels = in_channels
+		self.out_channels = out_channels
+		# Save KAND config for lazy init of message KAND
+		self._grid_min = grid_min
+		self._grid_max = grid_max
+		self._num_grids = num_grids
+		self._linspace = linspace
+		self._trainable_grid = trainable_grid
 
 		if kan:
 			if bsplines:
@@ -52,22 +62,49 @@ class KANGConv(MessagePassing):
 				)
 		else:
 			self.nn = MLP([in_channels, out_channels])
-		
+
+		# The input x is expected to already have in_channels dimensions
+		self.skip = nn.Identity()
+
+		# Content message via KAND over [x_j, edge_attr] -> in_channels
+		# Lazy initialization when we know the edge_attr dimension
+		self.msg_kand = None
+
 		self.reset_parameters()
 
 	def reset_parameters(self):
 		super().reset_parameters()
 
-	def forward(self, x: Union[Tensor, OptPairTensor], edge_index: Adj, size: Size = None,) -> Tensor:
+	def forward(self, x: Union[Tensor, OptPairTensor], edge_index: Adj, edge_attr: Tensor = None, size: Size = None,) -> Tensor:
 		if isinstance(x, Tensor):
 			x = (x, x)
-	
-		out = self.propagate(edge_index, x=x, size=size)
+		
+		agg = self.propagate(edge_index, x=x, edge_attr=edge_attr, size=size)
+		res = self.skip(x[0]) + agg
+		return self.nn(res)
 
-		return self.nn(out)
-
-	def message(self, x_j: Tensor) -> Tensor:
-		return x_j
+	def message(self, x_i: Tensor, x_j: Tensor, edge_attr: Tensor = None) -> Tensor:
+		# Build content message from [x_j, edge_attr]; if edge_attr missing, use zeros
+		if edge_attr is None:
+			edge_attr = torch.zeros(x_j.size(0), 1, device=x_j.device, dtype=x_j.dtype)
+		# Lazy-init KAND with correct input size if not pre-initialized
+		if self.msg_kand is None:
+			in_dim = self.in_channels + edge_attr.size(1)
+			self.msg_kand = KAND(
+				in_dim,
+				self.in_channels,
+				self._grid_min,
+				self._grid_max,
+				self._num_grids,
+				device=self.device,
+				linspace=self._linspace,
+				trainable_grid=self._trainable_grid,
+				use_layernorm=False
+			)
+			self.msg_kand = self.msg_kand.to(x_j.device)
+		z = torch.cat([x_j, edge_attr], dim=-1)
+		m = self.msg_kand(z)
+		return m
 
 	def message_and_aggregate(self, adj_t: Adj, x: OptPairTensor) -> Tensor:
 		if isinstance(adj_t, SparseTensor):

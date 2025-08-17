@@ -14,16 +14,16 @@
     "multitask_targets": null,
     "task_weights": null,
     "best_params": {
-        "lr": 0.0014555623824668395,
-        "wd": 0.00014365206023808237,
+        "lr": 0.002735294546017731,
+        "wd": 0.00012473420372917152,
         "hidden_channels": 128,
-        "layers": 5,
-        "dropout": 0.442024310315707,
-        "num_grids": 12,
-        "batch_size": 64,
-        "gamma": 1.9082453314085948
+        "layers": 7,
+        "dropout": 0.14567260400229834,
+        "num_grids": 8,
+        "batch_size": 128,
+        "gamma": 2.187445732525126
     },
-    "validation_score": 0.8554350848540608,
-    "final_test_metric": 0.836260728534049,
+    "validation_score": 0.8551698243290387,
+    "final_test_metric": 0.8331937633036084,
     "n_trials": 20
 }

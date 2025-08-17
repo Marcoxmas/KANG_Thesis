@@ -38,6 +38,14 @@ class KANG_MultiTask_Regression(nn.Module):
 		self.num_tasks = num_tasks
 		self.convs = nn.ModuleList()
 
+		# Store config for edge encoder lazy init
+		self._grid_min = grid_min
+		self._grid_max = grid_max
+		self._num_grids = num_grids
+		self._device = device
+		self._linspace = linspace
+		self._trainable_grid = trainable_grid
+
 		# Calculate final layer input dimension
 		final_input_dim = hidden_channels
 		if self.use_global_features:
@@ -109,15 +117,20 @@ class KANG_MultiTask_Regression(nn.Module):
 
 		self.layer_norms = nn.ModuleList([nn.LayerNorm(hidden_channels, elementwise_affine=False, bias=False) for _ in range(num_layers)])
 
-	def forward(self, x, edge_index, batch=None, global_features=None):
+	def forward(self, x, edge_index, batch=None, global_features=None, edge_attr=None):
 		x.requires_grad_(True)
-		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		# Add self-loops and extend edge_attr for gated message passing
+		if edge_attr is not None:
+			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+		else:
+			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
 		x = F.dropout(x, p=self.dropout, training=self.training)
 
 		res = None
 		for i, conv in enumerate(self.convs):
 			if self.residuals and i > 0: res = x  
-			x = conv(x, edge_index)
+			x = conv(x, edge_index, edge_attr)
 			x = self.layer_norms[i](x)
 			x = F.dropout(x, p=self.dropout, training=self.training)
 			if self.residuals and i > 0: x += res
@@ -146,22 +159,27 @@ class KANG_MultiTask_Regression(nn.Module):
 		# Remove the last dimension for easier handling: [batch_size, num_tasks]
 		return stacked_outputs.squeeze(-1)
 	
-	def encode(self, x, edge_index, batch=None, global_features=None):
+	def encode(self, x, edge_index, batch=None, global_features=None, edge_attr=None):
 		"""
 		Encode the graph into a shared molecular representation.
 		Used for feature extraction and analysis.
 		"""
 		x.requires_grad_(True)
 
-		edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		# Add self-loops and extend edge_attr for encoding
+		if edge_attr is not None:
+			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+		else:
+			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
 		x = F.dropout(x, p=self.dropout, training=self.training)
 
 		res = None
 		for i, conv in enumerate(self.convs):
 			if self.residuals and i > 0: res = x  
-			x = F.dropout(x, p=self.dropout, training=self.training)
-			x = conv(x, edge_index)
+			x = conv(x, edge_index, edge_attr)
 			x = self.layer_norms[i](x)
+			x = F.dropout(x, p=self.dropout, training=self.training)
 			if self.residuals and i > 0: x += res
 
 		# 2. Readout layer
@@ -178,19 +196,19 @@ class KANG_MultiTask_Regression(nn.Module):
 
 		return x
 	
-	def predict_single_task(self, x, edge_index, batch=None, global_features=None, task_idx=0):
+	def predict_single_task(self, x, edge_index, batch=None, global_features=None, task_idx=0, edge_attr=None):
 		"""
 		Predict for a single task. Useful for single-task evaluation.
 		"""
-		encoded = self.encode(x, edge_index, batch, global_features)
+		encoded = self.encode(x, edge_index, batch, global_features, edge_attr)
 		task_output = self.task_heads[task_idx](encoded)
 		return task_output.squeeze(-1)  # Remove last dimension: [batch_size]
 	
-	def get_task_predictions(self, x, edge_index, batch=None, global_features=None, task_indices=None):
+	def get_task_predictions(self, x, edge_index, batch=None, global_features=None, task_indices=None, edge_attr=None):
 		"""
 		Get predictions for specific tasks only.
 		"""
-		encoded = self.encode(x, edge_index, batch, global_features)
+		encoded = self.encode(x, edge_index, batch, global_features, edge_attr)
 		
 		if task_indices is None:
 			task_indices = list(range(self.num_tasks))

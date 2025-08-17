@@ -35,14 +35,14 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.target_column = target_column
             args.lr = trial.suggest_float("lr", 0.001, 0.01, log=True)
             args.wd = trial.suggest_float("wd", 1e-5, 1e-3, log=True)
-            args.hidden_channels = trial.suggest_categorical("hidden_channels", [32, 64, 128, 256])
-            args.layers = trial.suggest_int("layers", 1, 7)
+            args.hidden_channels = trial.suggest_categorical("hidden_channels", [64, 128, 256])
+            args.layers = trial.suggest_int("layers", 3, 9)
             args.dropout = trial.suggest_float("dropout", 0.1, 0.5)
-            args.num_grids = trial.suggest_categorical("num_grids", [10, 12, 14, 16])
+            args.num_grids = trial.suggest_categorical("num_grids", [4, 6, 8, 10, 12])
             args.batch_size = trial.suggest_categorical("batch_size", [64, 128, 256])
             args.gamma = trial.suggest_float("gamma", 0.5, 2.5)
-            args.grid_min = 0
-            args.grid_max = 2.1 if task_type == "classification" else 1.1
+            args.grid_min = -1
+            args.grid_max = 2.5 if task_type == "classification" else 1.5
             args.epochs = 100
             args.patience = 30
             args.log_freq = args.epochs // 10
@@ -140,8 +140,8 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         setattr(best_args, param, value)
     
     # Set fixed parameters - DISABLE subset for final training
-    best_args.grid_min = 0
-    best_args.grid_max = 2.1 if task_type == "classification" else 1.1
+    best_args.grid_min = -1
+    best_args.grid_max = 2.5 if task_type == "classification" else 1.5
     best_args.epochs = 200
     best_args.patience = 50
     best_args.log_freq = best_args.epochs // 10

@@ -162,7 +162,7 @@ def graph_classification(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features,
+		use_global_features=args.use_global_features
 	).to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
@@ -190,17 +190,18 @@ def graph_classification(args, return_history=False):
 			data = data.to(device, non_blocking=True)
 			data.y = data.y.long()  # Convert labels to LongTensor
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 			
 			if use_amp:
 				with autocast():
-					out = model(data.x, data.edge_index, data.batch, global_features)
+					out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					loss = criterion(out, data.y)
 				epoch_loss += loss.item()
 				scaler.scale(loss).backward()
 				scaler.step(optimizer)
 				scaler.update()
 			else:
-				out = model(data.x, data.edge_index, data.batch, global_features)
+				out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				loss = criterion(out, data.y)
 				epoch_loss += loss.item()
 				loss.backward()
@@ -217,13 +218,14 @@ def graph_classification(args, return_history=False):
 					data = data.to(device, non_blocking=True)
 					data.y = data.y.long()
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 					
 					if use_amp:
 						with autocast():
-							out = model(data.x, data.edge_index, data.batch, global_features)
+							out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 							probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
 					else:
-						out = model(data.x, data.edge_index, data.batch, global_features)
+						out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
 					
 					targets = data.y.cpu().numpy()
@@ -237,13 +239,14 @@ def graph_classification(args, return_history=False):
 					data = data.to(device, non_blocking=True)
 					data.y = data.y.long()  # Convert labels to LongTensor
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 					
 					if use_amp:
 						with autocast():
-							out = model(data.x, data.edge_index, data.batch, global_features)
+							out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 							pred = out.argmax(dim=1)
 					else:
-						out = model(data.x, data.edge_index, data.batch, global_features)
+						out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						pred = out.argmax(dim=1)
 					
 					correct += (pred == data.y).sum().item()
@@ -283,15 +286,16 @@ def graph_classification(args, return_history=False):
 		for data in test_loader:
 			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 			
 			if use_amp:
 				with autocast():
-					out = model(data.x, data.edge_index, data.batch, global_features)
+					out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					pred = out.argmax(dim=1)
 					# For ROC-AUC
 					probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy() if out.shape[1] > 1 else torch.sigmoid(out).detach().cpu().numpy().flatten()
 			else:
-				out = model(data.x, data.edge_index, data.batch, global_features)
+				out = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				pred = out.argmax(dim=1)
 				# For ROC-AUC
 				probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy() if out.shape[1] > 1 else torch.sigmoid(out).detach().cpu().numpy().flatten()
@@ -481,6 +485,7 @@ def graph_classification_multitask(args, return_history=False):
 			optimizer.zero_grad()
 			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 			
 			# Reshape labels for multi-task
 			num_graphs = data.batch.max().item() + 1
@@ -488,7 +493,7 @@ def graph_classification_multitask(args, return_history=False):
 			
 			if use_amp:
 				with autocast():
-					outputs = model(data.x, data.edge_index, data.batch, global_features)
+					outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					# Multi-task loss computation
 					total_loss = 0
 					valid_tasks = 0
@@ -513,7 +518,7 @@ def graph_classification_multitask(args, return_history=False):
 					scaler.step(optimizer)
 					scaler.update()
 			else:
-				outputs = model(data.x, data.edge_index, data.batch, global_features)
+				outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				# Multi-task loss computation
 				total_loss = 0
 				valid_tasks = 0
@@ -550,15 +555,16 @@ def graph_classification_multitask(args, return_history=False):
 					for data in val_loader:
 						data = data.to(device, non_blocking=True)
 						global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+						edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 						
 						num_graphs = data.batch.max().item() + 1
 						labels = data.y.view(num_graphs, len(target_assays))
 						
 						if use_amp:
 							with autocast():
-								outputs = model(data.x, data.edge_index, data.batch, global_features)
+								outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						else:
-							outputs = model(data.x, data.edge_index, data.batch, global_features)
+							outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						
 						# Get probabilities for this task
 						task_mask = ~torch.isnan(labels[:, task_idx])
@@ -586,15 +592,16 @@ def graph_classification_multitask(args, return_history=False):
 					for data in val_loader:
 						data = data.to(device, non_blocking=True)
 						global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+						edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 						
 						num_graphs = data.batch.max().item() + 1
 						labels = data.y.view(num_graphs, len(target_assays))
 						
 						if use_amp:
 							with autocast():
-								outputs = model(data.x, data.edge_index, data.batch, global_features)
+								outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						else:
-							outputs = model(data.x, data.edge_index, data.batch, global_features)
+							outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 						
 						# Get predictions for this task
 						task_mask = ~torch.isnan(labels[:, task_idx])
@@ -651,15 +658,16 @@ def graph_classification_multitask(args, return_history=False):
 				for data in test_loader:
 					data = data.to(device, non_blocking=True)
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 					
 					num_graphs = data.batch.max().item() + 1
 					labels = data.y.view(num_graphs, len(target_assays))
 					
 					if use_amp:
 						with autocast():
-							outputs = model(data.x, data.edge_index, data.batch, global_features)
+							outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					else:
-						outputs = model(data.x, data.edge_index, data.batch, global_features)
+						outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					
 					task_mask = ~torch.isnan(labels[:, task_idx])
 					if task_mask.sum() > 0:
@@ -689,15 +697,16 @@ def graph_classification_multitask(args, return_history=False):
 				for data in test_loader:
 					data = data.to(device, non_blocking=True)
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 					
 					num_graphs = data.batch.max().item() + 1
 					labels = data.y.view(num_graphs, len(target_assays))
 					
 					if use_amp:
 						with autocast():
-							outputs = model(data.x, data.edge_index, data.batch, global_features)
+							outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					else:
-						outputs = model(data.x, data.edge_index, data.batch, global_features)
+						outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					
 					task_mask = ~torch.isnan(labels[:, task_idx])
 					if task_mask.sum() > 0:

@@ -1,0 +1,80 @@
+================================================================================
+OPTUNA HYPERPARAMETER SEARCH - RESULTS SUMMARY
+================================================================================
+Generated: 2025-08-14 20:44:55
+Total results analyzed: 34
+
+OVERALL STATISTICS:
+----------------------------------------
+Total experiments completed: 34
+Unique datasets: 4
+Regression experiments: 27
+Classification experiments: 7
+Multi-task experiments: 4
+Single-task experiments: 30
+With global features: 33
+Without global features: 1
+
+DATASET AVERAGES:
+----------------------------------------
+
+HIV:
+  classification single-task with global    : avg=0.7796 ±0.0000 (min=0.7796, max=0.7796, n=1)
+
+QM8:
+  regression   single-task with global    : avg=0.0189 ±0.0095 (min=0.0113, max=0.0349, n=12)
+  regression   multi-task with global    : avg=0.0214 ±0.0000 (min=0.0214, max=0.0214, n=1)
+  regression   multi-task without global : avg=0.0192 ±0.0000 (min=0.0192, max=0.0192, n=1)
+
+QM9:
+  regression   single-task with global    : avg=4.8053 ±13.2151 (min=0.0026, max=46.6393, n=12)
+  regression   multi-task with global    : avg=3.0649 ±0.0000 (min=3.0649, max=3.0649, n=1)
+
+TOXCAST:
+  classification single-task with global    : avg=0.8031 ±0.0539 (min=0.7365, max=0.8814, n=5)
+  classification multi-task with global    : avg=0.8332 ±0.0000 (min=0.8332, max=0.8332, n=1)
+
+DETAILED RESULTS BY DATASET:
+----------------------------------------
+
+HIV:
+  classification mu                   with global    : 0.7796
+
+QM8:
+  regression   E1-CAM               with global    : 0.0116
+  regression   E1-CC2               with global    : 0.0116
+  regression   E1-PBE0              with global    : 0.0113
+  regression   E2-CAM               with global    : 0.0120
+  regression   E2-CC2               with global    : 0.0117
+  regression   E2-PBE0              with global    : 0.0123
+  regression   f1-CAM               with global    : 0.0201
+  regression   f1-CC2               with global    : 0.0188
+  regression   f1-PBE0              with global    : 0.0165
+  regression   f2-CAM               with global    : 0.0341
+  regression   f2-CC2               with global    : 0.0349
+  regression   f2-PBE0              with global    : 0.0326
+  regression   MT-12targets         without global : 0.0192
+  regression   MT-12targets         with global    : 0.0214
+
+QM9:
+  regression   alpha                with global    : 0.7276
+  regression   cv                   with global    : 0.3523
+  regression   g298                 with global    : 2.7063
+  regression   gap                  with global    : 0.0098
+  regression   h298                 with global    : 2.4310
+  regression   homo                 with global    : 0.0075
+  regression   lumo                 with global    : 0.0112
+  regression   MT-12targets         with global    : 3.0649
+  regression   mu                   with global    : 0.7057
+  regression   r2                   with global    : 46.6393
+  regression   u0                   with global    : 2.3725
+  regression   u298                 with global    : 1.6970
+  regression   zpve                 with global    : 0.0026
+
+TOXCAST:
+  classification MT-5assays           with global    : 0.8332
+  classification TOX21_AhR_LUC_Agonist with global    : 0.8814
+  classification TOX21_Aromatase_Inhibition with global    : 0.8071
+  classification TOX21_AutoFluor_HEK293_Cell_blue with global    : 0.8165
+  classification TOX21_p53_BLA_p3_ch1 with global    : 0.7365
+  classification TOX21_p53_BLA_p4_ratio with global    : 0.7737

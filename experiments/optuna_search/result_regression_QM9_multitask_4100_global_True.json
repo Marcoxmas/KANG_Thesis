@@ -21,16 +21,16 @@
     ],
     "task_weights": null,
     "best_params": {
-        "lr": 0.006095341776656667,
-        "wd": 3.342337484863047e-05,
-        "hidden_channels": 64,
-        "layers": 4,
-        "dropout": 0.11390763658376776,
-        "num_grids": 12,
-        "batch_size": 128,
-        "gamma": 0.9966639417190266
+        "lr": 0.0033390093766693715,
+        "wd": 1.8482783121758363e-05,
+        "hidden_channels": 256,
+        "layers": 7,
+        "dropout": 0.13686273559997666,
+        "num_grids": 4,
+        "batch_size": 256,
+        "gamma": 1.036334844144434
     },
-    "validation_score": 8.173773675662272,
-    "final_test_metric": 7.451727413997538,
+    "validation_score": 5.057157259721403,
+    "final_test_metric": 3.06485109566562,
     "n_trials": 20
 }

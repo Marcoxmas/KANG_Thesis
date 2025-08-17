@@ -109,7 +109,7 @@ def graph_regression(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features,
+		use_global_features=args.use_global_features
 	).to(device)
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -137,17 +137,18 @@ def graph_regression(args, return_history=False):
 			optimizer.zero_grad()
 			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 			
 			if use_amp:
 				with autocast():
-					out = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					out = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 					loss = criterion(out, data.y.view(-1).float())
 				epoch_loss += loss.item()
 				scaler.scale(loss).backward()
 				scaler.step(optimizer)
 				scaler.update()
 			else:
-				out = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+				out = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 				loss = criterion(out, data.y.view(-1).float())
 				epoch_loss += loss.item()
 				loss.backward()
@@ -165,12 +166,12 @@ def graph_regression(args, return_history=False):
 				
 				if use_amp:
 					with autocast():
-						preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+						preds = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 						targets = data.y.view(-1).float()
 						total_loss += criterion(preds, targets).item()
 						total_mae += torch.abs(preds - targets).mean().item()
 				else:
-					preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					preds = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 					targets = data.y.view(-1).float()
 					total_loss += criterion(preds, targets).item()
 					total_mae += torch.abs(preds - targets).mean().item()
@@ -209,12 +210,12 @@ def graph_regression(args, return_history=False):
 			
 			if use_amp:
 				with autocast():
-					preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+					preds = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 					targets = data.y.view(-1).float()
 					total_loss += criterion(preds, targets).item()
 					total_mae += torch.abs(preds - targets).mean().item()
 			else:
-				preds = model(data.x, data.edge_index, data.batch, global_features).view(-1)
+				preds = model(data.x, data.edge_index, data.batch, global_features, data.edge_attr).view(-1)
 				targets = data.y.view(-1).float()
 				total_loss += criterion(preds, targets).item()
 				total_mae += torch.abs(preds - targets).mean().item()
@@ -327,7 +328,7 @@ def graph_regression_multitask(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features,
+		use_global_features=args.use_global_features
 	).to(device)
 	
 	print(f"Multi-task model created with {sum(p.numel() for p in model.parameters()):,} parameters")
@@ -359,6 +360,7 @@ def graph_regression_multitask(args, return_history=False):
 			optimizer.zero_grad()
 			data = data.to(device, non_blocking=True)
 			global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+			edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 			
 			# Reshape labels for multi-task
 			num_graphs = data.batch.max().item() + 1
@@ -366,7 +368,7 @@ def graph_regression_multitask(args, return_history=False):
 			
 			if use_amp:
 				with autocast():
-					outputs = model(data.x, data.edge_index, data.batch, global_features)
+					outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					# Multi-task loss computation
 					total_loss = 0
 					valid_tasks = 0
@@ -391,7 +393,7 @@ def graph_regression_multitask(args, return_history=False):
 					scaler.step(optimizer)
 					scaler.update()
 			else:
-				outputs = model(data.x, data.edge_index, data.batch, global_features)
+				outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				# Multi-task loss computation
 				total_loss = 0
 				valid_tasks = 0
@@ -426,15 +428,16 @@ def graph_regression_multitask(args, return_history=False):
 				for data in val_loader:
 					data = data.to(device, non_blocking=True)
 					global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+					edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 					
 					num_graphs = data.batch.max().item() + 1
 					labels = data.y.view(num_graphs, len(target_columns))
 					
 					if use_amp:
 						with autocast():
-							outputs = model(data.x, data.edge_index, data.batch, global_features)
+							outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					else:
-						outputs = model(data.x, data.edge_index, data.batch, global_features)
+						outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 					
 					# Get MAE for this task
 					task_mask = ~torch.isnan(labels[:, task_idx])
@@ -489,15 +492,16 @@ def graph_regression_multitask(args, return_history=False):
 			for data in test_loader:
 				data = data.to(device, non_blocking=True)
 				global_features = data.global_features if args.use_global_features and hasattr(data, 'global_features') else None
+				edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 				
 				num_graphs = data.batch.max().item() + 1
 				labels = data.y.view(num_graphs, len(target_columns))
 				
 				if use_amp:
 					with autocast():
-						outputs = model(data.x, data.edge_index, data.batch, global_features)
+						outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				else:
-					outputs = model(data.x, data.edge_index, data.batch, global_features)
+					outputs = model(data.x, data.edge_index, data.batch, global_features, edge_attr)
 				
 				task_mask = ~torch.isnan(labels[:, task_idx])
 				if task_mask.sum() > 0:

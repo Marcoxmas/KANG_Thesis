@@ -1,13 +1,13 @@
 {
-    "lr": 0.0011135058888132134,
-    "wd": 2.970330643240924e-05,
-    "hidden_channels": 32,
-    "layers": 2,
-    "dropout": 0.4315684741543163,
-    "num_grids": 12,
-    "batch_size": 256,
-    "gamma": 2.139444942588884,
-    "use_subset": false,
+    "lr": 0.003911060309677611,
+    "wd": 0.00018759176998925988,
+    "hidden_channels": 64,
+    "layers": 3,
+    "dropout": 0.4734002199279508,
+    "num_grids": 4,
+    "batch_size": 128,
+    "gamma": 1.528971589749108,
+    "use_subset": true,
     "subset_ratio": 0.3,
     "use_global_features": true,
     "task_type": "regression",
@@ -30,6 +30,6 @@
         "f2-CAM"
     ],
     "task_weights": null,
-    "best_value": 0.020176756115619435,
+    "best_value": 0.024254979384134106,
     "n_trials": 20
 }

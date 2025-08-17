@@ -29,12 +29,14 @@ class KANG_MultiTask(nn.Module):
 			linspace = False,
 			trainable_grid = True,
 			bsplines=False,
-			use_global_features=False
+			use_global_features=False,
+			use_self_loops=True
 		):
 		super(KANG_MultiTask, self).__init__()
 		self.dropout = dropout
 		self.residuals = residuals
 		self.use_global_features = use_global_features
+		self.use_self_loops = use_self_loops
 		self.num_tasks = num_tasks
 		self.convs = nn.ModuleList()
 
@@ -123,10 +125,11 @@ class KANG_MultiTask(nn.Module):
 	def forward(self, x, edge_index, batch=None, global_features=None, edge_attr=None):
 		x.requires_grad_(True)
 		# Add self-loops and extend edge_attr
-		if edge_attr is not None:
-			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
-		else:
-			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		if self.use_self_loops:
+			if edge_attr is not None:
+				edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+			else:
+				edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 
 		x = F.dropout(x, p=self.dropout, training=self.training)
 
@@ -169,10 +172,11 @@ class KANG_MultiTask(nn.Module):
 		x.requires_grad_(True)
 
 		# Add self-loops and extend edge_attr for encoding
-		if edge_attr is not None:
-			edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
-		else:
-			edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+		if self.use_self_loops:
+			if edge_attr is not None:
+				edge_index, edge_attr = add_self_loops(edge_index, edge_attr=edge_attr, fill_value=0.0, num_nodes=x.size(0))
+			else:
+				edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 
 		x = F.dropout(x, p=self.dropout, training=self.training)
 

@@ -46,6 +46,7 @@ def get_args():
 	parser.add_argument("--grid_max", type=int, default=3, help="")
 	parser.add_argument("--log_freq", type=int, default=10, help="Logging frequency (epochs)")
 	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+	parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
 	# Multi-task arguments
 	parser.add_argument("--multitask", action="store_true", help="Use multi-task learning")
 	parser.add_argument("--multitask_targets", type=str, nargs='+', default=None, 
@@ -109,7 +110,8 @@ def graph_regression(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features
+		use_global_features=args.use_global_features,
+		use_self_loops=not getattr(args, 'no_self_loops', False)
 	).to(device)
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -328,7 +330,8 @@ def graph_regression_multitask(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features
+		use_global_features=args.use_global_features,
+		use_self_loops=not getattr(args, 'no_self_loops', False)
 	).to(device)
 	
 	print(f"Multi-task model created with {sum(p.numel() for p in model.parameters()):,} parameters")

@@ -73,6 +73,7 @@ def get_args():
 	parser.add_argument("--gamma", type=float, default=1.0, help="Gamma parameter for Focal Loss (default: 1.0)")
 	parser.add_argument("--return_history", action="store_true", help="Return training history for plotting")
 	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+	parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
 	# Multi-task arguments
 	parser.add_argument("--multitask", action="store_true", help="Use multi-task learning for ToxCast dataset")
 	parser.add_argument("--multitask_assays", type=str, nargs='+', default=None, 
@@ -162,7 +163,8 @@ def graph_classification(args, return_history=False):
 		args.num_grids,
 		args.dropout,
 		device=device,
-		use_global_features=args.use_global_features
+		use_global_features=args.use_global_features,
+		use_self_loops=not getattr(args, 'no_self_loops', False)
 	).to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
@@ -454,6 +456,7 @@ def graph_classification_multitask(args, return_history=False):
 		args.dropout,
 		device=device,
 		use_global_features=args.use_global_features,
+		use_self_loops=not getattr(args, 'no_self_loops', False)
 	).to(device)
 	
 	print(f"Multi-task model created with {sum(p.numel() for p in model.parameters()):,} parameters")

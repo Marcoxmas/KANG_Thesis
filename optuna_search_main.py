@@ -15,6 +15,7 @@ def get_args():
     parser.add_argument("--use_subset", action="store_true", help="Use a smaller subset of the dataset during tuning")
     parser.add_argument("--subset_ratio", type=float, default=0.3, help="Ratio of dataset to use for subset (default: 0.3)")
     parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+    parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
     parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (default: 20)")
     # Multi-task arguments
     parser.add_argument("--multitask", action="store_true", help="Use multi-task learning")
@@ -26,7 +27,7 @@ def get_args():
                        help="JSON string with task weights for multi-task loss")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None):
     def objective(trial):
         try:
             import argparse
@@ -52,6 +53,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.use_subset = use_subset
             args.subset_ratio = subset_ratio
             args.use_global_features = use_global_features
+            args.no_self_loops = no_self_loops
             # Multi-task arguments
             args.multitask = multitask
             args.multitask_assays = multitask_assays
@@ -111,6 +113,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         best_params["use_subset"] = use_subset
         best_params["subset_ratio"] = subset_ratio
         best_params["use_global_features"] = use_global_features
+        best_params["no_self_loops"] = no_self_loops
         best_params["task_type"] = task_type
         best_params["dataset_name"] = dataset_name
         best_params["target_column"] = target_column
@@ -151,6 +154,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     best_args.use_subset = False  # Use full dataset for final training
     best_args.subset_ratio = 1.0
     best_args.use_global_features = use_global_features
+    best_args.no_self_loops = no_self_loops
     # Multi-task arguments
     best_args.multitask = multitask
     best_args.multitask_assays = multitask_assays
@@ -190,6 +194,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         "dataset_name": dataset_name,
         "target_column": target_column,
         "use_global_features": use_global_features,
+        "no_self_loops": no_self_loops,
         "multitask": multitask,
         "multitask_assays": multitask_assays,
         "multitask_targets": multitask_targets,
@@ -242,6 +247,7 @@ if __name__ == "__main__":
         args.use_subset, 
         args.subset_ratio, 
         args.use_global_features,
+        args.no_self_loops,
         args.n_trials,
         args.multitask,
         args.multitask_assays,

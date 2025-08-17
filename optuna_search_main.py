@@ -131,105 +131,71 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     if use_subset:
         print(f"Note: Hyperparameters found using {subset_ratio*100:.0f}% of the dataset for faster tuning.")
     
-    # Run the best trial again to get final test performance on FULL dataset
-    print("\nRunning best hyperparameters on FULL dataset to get final test performance...")
-    import argparse
-    best_args = argparse.Namespace()
-    best_args.dataset_name = dataset_name
-    best_args.target_column = target_column
+    # COMMENTED OUT: Final training moved to train_with_best_params.py
+    # This allows for better seed tracking and separate training runs
+    print("\nOptuna search completed. Use train_with_best_params.py for final training with seed tracking.")
     
-    # Apply best hyperparameters
-    for param, value in study.best_trial.params.items():
-        setattr(best_args, param, value)
+    # # Run the best trial again to get final test performance on FULL dataset
+    # print("\nRunning best hyperparameters on FULL dataset to get final test performance...")
+    # import argparse
+    # best_args = argparse.Namespace()
+    # best_args.dataset_name = dataset_name
+    # best_args.target_column = target_column
+    # 
+    # # Apply best hyperparameters
+    # for param, value in study.best_trial.params.items():
+    #     setattr(best_args, param, value)
+    # 
+    # # Set fixed parameters - DISABLE subset for final training
+    # best_args.grid_min = -1
+    # best_args.grid_max = 2.5 if task_type == "classification" else 1.5
+    # best_args.epochs = 200
+    # best_args.patience = 50
+    # best_args.log_freq = best_args.epochs // 10
+    # best_args.use_weighted_loss = True
+    # best_args.use_roc_auc = True
+    # best_args.return_history = True  # Flag to return training history
+    # best_args.use_subset = False  # Use full dataset for final training
+    # best_args.subset_ratio = 1.0
+    # best_args.use_global_features = use_global_features
+    # best_args.no_self_loops = no_self_loops
+    # # Multi-task arguments
+    # best_args.multitask = multitask
+    # best_args.multitask_assays = multitask_assays
+    # best_args.multitask_targets = multitask_targets
+    # best_args.task_weights = task_weights
+    # 
+    # final_test_metric = None
+    # 
+    # if task_type == "classification":
+    #     try:
+    #         best_val_acc, train_losses, val_metrics, final_test_metric = graph_classification(best_args, return_history=True)
+    #         # Create appropriate plot name for multi-task
+    #         plot_dataset_name = f"{dataset_name}_multitask" if multitask else dataset_name
+    #         plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name)
+    #     except Exception as e:
+    #         print(f"Warning: Could not generate training plots for classification: {e}")
+    #         try:
+    #             best_val_acc, final_test_metric = graph_classification(best_args)
+    #         except Exception as e2:
+    #             print(f"Error getting final test metric: {e2}")
+    # elif task_type == "regression":
+    #     try:
+    #         best_val_score, train_losses, val_metrics, final_test_metric = graph_regression(best_args, return_history=True)
+    #         # Create appropriate plot name for multi-task
+    #         plot_dataset_name = f"{dataset_name}_multitask" if multitask else dataset_name
+    #         plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name, target_column)
+    #     except Exception as e:
+    #         print(f"Warning: Could not generate training plots for regression: {e}")
+    #         try:
+    #             best_val_score, final_test_metric = graph_regression(best_args)
+    #         except Exception as e2:
+    #             print(f"Error getting final test metric: {e2}")
     
-    # Set fixed parameters - DISABLE subset for final training
-    best_args.grid_min = -1
-    best_args.grid_max = 2.5 if task_type == "classification" else 1.5
-    best_args.epochs = 200
-    best_args.patience = 50
-    best_args.log_freq = best_args.epochs // 10
-    best_args.use_weighted_loss = True
-    best_args.use_roc_auc = True
-    best_args.return_history = True  # Flag to return training history
-    best_args.use_subset = False  # Use full dataset for final training
-    best_args.subset_ratio = 1.0
-    best_args.use_global_features = use_global_features
-    best_args.no_self_loops = no_self_loops
-    # Multi-task arguments
-    best_args.multitask = multitask
-    best_args.multitask_assays = multitask_assays
-    best_args.multitask_targets = multitask_targets
-    best_args.task_weights = task_weights
+    # Return validation score from hyperparameter search (no final training)
+    final_test_metric = None  # Will be set by train_with_best_params.py
     
-    final_test_metric = None
-    
-    if task_type == "classification":
-        try:
-            best_val_acc, train_losses, val_metrics, final_test_metric = graph_classification(best_args, return_history=True)
-            # Create appropriate plot name for multi-task
-            plot_dataset_name = f"{dataset_name}_multitask" if multitask else dataset_name
-            plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name)
-        except Exception as e:
-            print(f"Warning: Could not generate training plots for classification: {e}")
-            try:
-                best_val_acc, final_test_metric = graph_classification(best_args)
-            except Exception as e2:
-                print(f"Error getting final test metric: {e2}")
-    elif task_type == "regression":
-        try:
-            best_val_score, train_losses, val_metrics, final_test_metric = graph_regression(best_args, return_history=True)
-            # Create appropriate plot name for multi-task
-            plot_dataset_name = f"{dataset_name}_multitask" if multitask else dataset_name
-            plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name, target_column)
-        except Exception as e:
-            print(f"Warning: Could not generate training plots for regression: {e}")
-            try:
-                best_val_score, final_test_metric = graph_regression(best_args)
-            except Exception as e2:
-                print(f"Error getting final test metric: {e2}")
-
-    # Save final result with test metric
-    result_data = {
-        "task_type": task_type,
-        "dataset_name": dataset_name,
-        "target_column": target_column,
-        "use_global_features": use_global_features,
-        "no_self_loops": no_self_loops,
-        "multitask": multitask,
-        "multitask_assays": multitask_assays,
-        "multitask_targets": multitask_targets,
-        "task_weights": task_weights,
-        "best_params": study.best_trial.params,
-        "validation_score": study.best_value,
-        "final_test_metric": final_test_metric,
-        "n_trials": n_trials
-    }
-    
-    result_file = f"{results_dir}/result_{task_type}_{dataset_name}"
-    if multitask:
-        if multitask_assays:
-            # Create a short hash for assays
-            assay_str = " ".join(sorted(multitask_assays))
-            assay_hash = str(sum(ord(c) for c in assay_str) % 10**8)
-            result_file += f"_multitask_{assay_hash}"
-        elif multitask_targets:
-            # Create a short hash for targets
-            target_str = " ".join(sorted(multitask_targets))
-            target_hash = str(sum(ord(c) for c in target_str) % 10**8)
-            result_file += f"_multitask_{target_hash}"
-        else:
-            result_file += "_multitask_default"
-    elif target_column:
-        result_file += f"_{target_column}"
-    result_file += f"_global_{use_global_features}.json"
-    
-    with open(result_file, "w") as f:
-        json.dump(result_data, f, indent=4)
-    
-    print(f"Final results saved to: {result_file}")
-    print(f"Final test metric: {final_test_metric}")
-    
-    return final_test_metric, study.best_trial.params
+    return study.best_value, study.best_trial.params
 
 if __name__ == "__main__":
     args = get_args()
@@ -240,7 +206,7 @@ if __name__ == "__main__":
     if args.multitask_targets and len(args.multitask_targets) == 1 and ',' in args.multitask_targets[0]:
         args.multitask_targets = args.multitask_targets[0].split(',')
     
-    final_metric, best_params = optuna_search(
+    validation_score, best_params = optuna_search(
         args.task, 
         args.dataset_name, 
         args.target_column, 
@@ -254,3 +220,5 @@ if __name__ == "__main__":
         args.multitask_targets,
         args.task_weights
     )
+    
+    print(f"Hyperparameter search completed with validation score: {validation_score}")

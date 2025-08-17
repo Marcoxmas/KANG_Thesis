@@ -4,11 +4,106 @@ import os
 from pathlib import Path
 import torch
 from tqdm.auto import tqdm
+from datetime import datetime
 
 # Import your existing training functions
 from graph_classification import graph_classification
 from graph_regression import graph_regression
+from plotting_utils import plot_training_metrics
 from src.utils import set_seed
+
+def create_result_filename(dataset_name, target_column, multitask, multitask_assays, multitask_targets, use_global_features, task_type, seed):
+    """Create a result filename with seed tracking."""
+    results_dir = Path("experiments/training_results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create base filename
+    result_file = f"training_result_{task_type}_{dataset_name}"
+    
+    if multitask:
+        if multitask_assays:
+            # Create a short hash for assays
+            assay_str = " ".join(sorted(multitask_assays))
+            assay_hash = str(sum(ord(c) for c in assay_str) % 10**8)
+            result_file += f"_multitask_{assay_hash}"
+        elif multitask_targets:
+            # Create a short hash for targets
+            target_str = " ".join(sorted(multitask_targets))
+            target_hash = str(sum(ord(c) for c in target_str) % 10**8)
+            result_file += f"_multitask_{target_hash}"
+        else:
+            result_file += "_multitask_default"
+    elif target_column:
+        result_file += f"_{target_column}"
+    
+    result_file += f"_global_{use_global_features}_seed_{seed}.json"
+    
+    return results_dir / result_file
+
+def save_training_results(results, args, seed, best_params_file, final_test_metric):
+    """Save training results to a JSON file with comprehensive information."""
+    
+    # Determine multitask assays/targets from args
+    multitask_assays = getattr(args, 'multitask_assays', None)
+    multitask_targets = getattr(args, 'multitask_targets', None)
+    
+    # Create result filename
+    task_type = "classification" if args.dataset_name in ["HIV", "TOXCAST"] else "regression"
+    result_file = create_result_filename(
+        args.dataset_name,
+        getattr(args, 'target_column', None),
+        getattr(args, 'multitask', False),
+        multitask_assays,
+        multitask_targets,
+        args.use_global_features,
+        task_type,
+        seed
+    )
+    
+    # Create comprehensive result data
+    result_data = {
+        "training_info": {
+            "timestamp": datetime.now().isoformat(),
+            "seed": seed,
+            "task_type": task_type,
+            "dataset_name": args.dataset_name,
+            "target_column": getattr(args, 'target_column', None),
+            "multitask": getattr(args, 'multitask', False),
+            "multitask_assays": multitask_assays,
+            "multitask_targets": multitask_targets,
+            "use_global_features": args.use_global_features,
+            "use_self_loops": args.use_self_loops,
+            "epochs_run": args.epochs,
+            "patience": args.patience,
+            "best_params_file": str(best_params_file)
+        },
+        "hyperparameters": {
+            "lr": args.lr,
+            "wd": getattr(args, 'wd', None),
+            "hidden_channels": args.hidden_channels,
+            "layers": args.layers,
+            "dropout": args.dropout,
+            "batch_size": args.batch_size,
+            "num_grids": getattr(args, 'num_grids', None),
+            "gamma": getattr(args, 'gamma', None),
+            "grid_min": args.grid_min,
+            "grid_max": args.grid_max
+        },
+        "results": {
+            "final_test_metric": final_test_metric
+        }
+    }
+    
+    # Add training history if available
+    if isinstance(results, dict):
+        result_data["results"].update(results)
+    
+    # Save results
+    with open(result_file, 'w') as f:
+        json.dump(result_data, f, indent=4)
+    
+    print(f"\nTraining results saved to: {result_file}")
+    return result_file
 
 def find_best_params_file(dataset_name, target_column, multitask, use_global_features, task_type):
     """Find the best parameters file based on the given criteria."""
@@ -97,7 +192,7 @@ def create_args_from_params(params, use_self_loops, epochs, patience, task_type)
     # Override with custom training parameters
     args.epochs = epochs
     args.patience = patience
-    args.log_freq = epochs // 10  # Set log_freq to epochs // 10
+    args.log_freq = max(1, epochs // 10)  # Ensure log_freq is at least 1
     
     # Set grid parameters based on task type
     if task_type == "classification":
@@ -210,17 +305,58 @@ def main():
     try:
         if task_type == "classification":
             results = graph_classification(args, return_history=True)
+            if isinstance(results, tuple) and len(results) >= 4:
+                best_val_acc, train_losses, val_metrics, final_test_metric = results
+                # Create training plots
+                plot_dataset_name = f"{args.dataset_name}_multitask" if args.multitask else args.dataset_name
+                try:
+                    plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name)
+                except Exception as e:
+                    print(f"Warning: Could not generate training plots: {e}")
+                
+                # Prepare results dict
+                results_dict = {
+                    "best_validation_accuracy": best_val_acc,
+                    "train_losses": train_losses,
+                    "val_metrics": val_metrics
+                }
+            else:
+                # Handle case where return_history=False or different return format
+                final_test_metric = results if isinstance(results, (int, float)) else None
+                results_dict = {}
+                
         else:  # regression
             results = graph_regression(args, return_history=True)
+            if isinstance(results, tuple) and len(results) >= 4:
+                best_val_score, train_losses, val_metrics, final_test_metric = results
+                # Create training plots
+                plot_dataset_name = f"{args.dataset_name}_multitask" if args.multitask else args.dataset_name
+                try:
+                    plot_training_metrics(train_losses, val_metrics, task_type, plot_dataset_name, getattr(args, 'target_column', None))
+                except Exception as e:
+                    print(f"Warning: Could not generate training plots: {e}")
+                
+                # Prepare results dict
+                results_dict = {
+                    "best_validation_score": best_val_score,
+                    "train_losses": train_losses,
+                    "val_metrics": val_metrics
+                }
+            else:
+                # Handle case where return_history=False or different return format
+                final_test_metric = results if isinstance(results, (int, float)) else None
+                results_dict = {}
         
         print(f"\nTraining completed successfully!")
         
+        # Save training results with seed tracking
+        result_file = save_training_results(results_dict, args, cmd_args.seed, best_params_file, final_test_metric)
+        
         # Print final results
-        if isinstance(results, dict):
-            print(f"Final results:")
-            for key, value in results.items():
-                if isinstance(value, (int, float)):
-                    print(f"  {key}: {value:.4f}")
+        print(f"Final results:")
+        print(f"  Final test metric: {final_test_metric:.4f}" if final_test_metric is not None else "  Final test metric: N/A")
+        print(f"  Seed used: {cmd_args.seed}")
+        print(f"  Results saved to: {result_file}")
             
     except Exception as e:
         print(f"Error during training: {str(e)}")

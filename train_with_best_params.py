@@ -12,7 +12,7 @@ from graph_regression import graph_regression
 from plotting_utils import plot_training_metrics
 from src.utils import set_seed
 
-def create_result_filename(dataset_name, target_column, multitask, multitask_assays, multitask_targets, use_global_features, task_type, seed):
+def create_result_filename(dataset_name, target_column, multitask, multitask_assays, multitask_targets, use_global_features, task_type, seed, use_self_loops):
     """Create a result filename with seed tracking."""
     results_dir = Path("experiments/training_results")
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -36,7 +36,9 @@ def create_result_filename(dataset_name, target_column, multitask, multitask_ass
     elif target_column:
         result_file += f"_{target_column}"
     
-    result_file += f"_global_{use_global_features}_seed_{seed}.json"
+    # Add self loops information to filename
+    self_loops_suffix = "with_loops" if use_self_loops else "no_loops"
+    result_file += f"_global_{use_global_features}_{self_loops_suffix}_seed_{seed}.json"
     
     return results_dir / result_file
 
@@ -57,7 +59,8 @@ def save_training_results(results, args, seed, best_params_file, final_test_metr
         multitask_targets,
         args.use_global_features,
         task_type,
-        seed
+        seed,
+        args.use_self_loops
     )
     
     # Create comprehensive result data
@@ -105,7 +108,7 @@ def save_training_results(results, args, seed, best_params_file, final_test_metr
     print(f"\nTraining results saved to: {result_file}")
     return result_file
 
-def find_best_params_file(dataset_name, target_column, multitask, use_global_features, task_type):
+def find_best_params_file(dataset_name, target_column, multitask, use_global_features, use_self_loops, task_type):
     """Find the best parameters file based on the given criteria."""
     optuna_dir = Path("experiments/optuna_search")
     
@@ -115,32 +118,89 @@ def find_best_params_file(dataset_name, target_column, multitask, use_global_fea
     if multitask:
         # For multitask, we need to find the file with the hash
         # Since we don't know the exact targets that were used, we'll search for pattern
-        pattern = f"best_params_{task_type}_{dataset_name}_multitask_*_global_{use_global_features}.json"
+        self_loops_suffix = "with_loops" if use_self_loops else "no_loops"
+        pattern = f"best_params_{task_type}_{dataset_name}_multitask_*_global_{use_global_features}_{self_loops_suffix}.json"
         matching_files = list(optuna_dir.glob(pattern))
         
         if matching_files:
-            # If multiple files found, return the first one (could be improved with selection logic)
             return matching_files[0]
         
-        # Try alternative patterns for multitask
+        # Try alternative patterns for multitask (backwards compatibility)
         alt_patterns = [
+            f"best_params_{task_type}_{dataset_name}_multitask_default_global_{use_global_features}_{self_loops_suffix}.json",
+            # Backwards compatibility with old naming scheme
+            f"best_params_{task_type}_{dataset_name}_multitask_*_global_{use_global_features}.json",
             f"best_params_{task_type}_{dataset_name}_multitask_default_global_{use_global_features}.json",
         ]
         
         for pattern in alt_patterns:
-            filepath = optuna_dir / pattern
-            if filepath.exists():
-                return filepath
+            if "*" in pattern:
+                matching_files = list(optuna_dir.glob(pattern))
+                if matching_files:
+                    # Check if self loops setting matches for backwards compatibility files
+                    for file in matching_files:
+                        try:
+                            with open(file, 'r') as f:
+                                file_params = json.load(f)
+                            file_use_self_loops = not file_params.get("no_self_loops", False)
+                            if file_use_self_loops == use_self_loops:
+                                return file
+                        except:
+                            continue
+                    # If no exact match found, return the first one
+                    return matching_files[0]
+            else:
+                filepath = optuna_dir / pattern
+                if filepath.exists():
+                    return filepath
                 
     else:
         # For single task - exact match with the optuna_search_main.py logic
         if target_column:
             param_file += f"_{target_column}"
-        param_file += f"_global_{use_global_features}.json"
+        
+        # Add self loops suffix to filename
+        self_loops_suffix = "with_loops" if use_self_loops else "no_loops"
+        param_file += f"_global_{use_global_features}_{self_loops_suffix}.json"
         
         filepath = optuna_dir / param_file
         if filepath.exists():
             return filepath
+        
+        # Try backwards compatibility (old naming scheme without self loops suffix)
+        old_param_file = f"best_params_{task_type}_{dataset_name}"
+        if target_column:
+            old_param_file += f"_{target_column}"
+        old_param_file += f"_global_{use_global_features}.json"
+        
+        old_filepath = optuna_dir / old_param_file
+        if old_filepath.exists():
+            # Check if self loops setting matches
+            try:
+                with open(old_filepath, 'r') as f:
+                    file_params = json.load(f)
+                file_use_self_loops = not file_params.get("no_self_loops", False)
+                if file_use_self_loops == use_self_loops:
+                    return old_filepath
+            except:
+                pass
+        
+        # Search more broadly if exact match not found
+        pattern = f"best_params_{task_type}_{dataset_name}_*_global_{use_global_features}_*.json"
+        matching_files = list(optuna_dir.glob(pattern))
+        
+        for file in matching_files:
+            try:
+                with open(file, 'r') as f:
+                    file_params = json.load(f)
+                # Check if settings match
+                if (file_params.get("target_column") == target_column and
+                    file_params.get("use_global_features") == use_global_features):
+                    file_use_self_loops = not file_params.get("no_self_loops", False)
+                    if file_use_self_loops == use_self_loops:
+                        return file
+            except:
+                continue
     
     # If no exact match found, list available files for debugging
     print(f"Could not find matching file for:")
@@ -149,6 +209,7 @@ def find_best_params_file(dataset_name, target_column, multitask, use_global_fea
     print(f"  Multitask: {multitask}")
     print(f"  Target column: {target_column}")
     print(f"  Use global features: {use_global_features}")
+    print(f"  Use self loops: {use_self_loops}")
     print(f"  Expected pattern: {pattern if multitask else param_file}")
     print("\nAvailable files in optuna_search directory:")
     
@@ -169,6 +230,88 @@ def find_best_params_file(dataset_name, target_column, multitask, use_global_fea
     
     return None
 
+def find_all_matching_params_files(dataset_name, task_type):
+    """Find all best parameters files that match the dataset and task type."""
+    optuna_dir = Path("experiments/optuna_search")
+    
+    matching_files = []
+    pattern = f"best_params_{task_type}_{dataset_name}_*.json"
+    
+    for filepath in optuna_dir.glob(pattern):
+        try:
+            with open(filepath, 'r') as f:
+                params = json.load(f)
+            
+            # Extract settings from the file
+            file_info = {
+                'filepath': filepath,
+                'params': params,
+                'dataset_name': params.get('dataset_name', dataset_name),
+                'task_type': params.get('task_type', task_type),
+                'target_column': params.get('target_column'),
+                'multitask': params.get('multitask', False),
+                'use_global_features': params.get('use_global_features', False),
+                'use_self_loops': not params.get('no_self_loops', False),  # Convert no_self_loops to use_self_loops
+                'best_value': params.get('best_value')
+            }
+            matching_files.append(file_info)
+            
+        except Exception as e:
+            print(f"Warning: Could not parse {filepath}: {e}")
+            continue
+    
+    return matching_files
+
+def select_best_params_file(dataset_name, task_type, target_column=None, multitask=None, use_global_features=None, use_self_loops=None):
+    """Select the best parameters file based on provided criteria."""
+    
+    # Find all matching files
+    matching_files = find_all_matching_params_files(dataset_name, task_type)
+    
+    if not matching_files:
+        print(f"No best parameters files found for {dataset_name} {task_type}")
+        return None
+    
+    print(f"Found {len(matching_files)} potential parameter files:")
+    for i, file_info in enumerate(matching_files):
+        print(f"  {i+1}. {file_info['filepath'].name}")
+        print(f"     Target: {file_info['target_column']}, Multitask: {file_info['multitask']}")
+        print(f"     Global features: {file_info['use_global_features']}, Self loops: {file_info['use_self_loops']}")
+        print(f"     Best value: {file_info['best_value']}")
+    
+    # If specific criteria provided, filter
+    filtered_files = matching_files
+    
+    if target_column is not None:
+        filtered_files = [f for f in filtered_files if f['target_column'] == target_column]
+    
+    if multitask is not None:
+        filtered_files = [f for f in filtered_files if f['multitask'] == multitask]
+        
+    if use_global_features is not None:
+        filtered_files = [f for f in filtered_files if f['use_global_features'] == use_global_features]
+        
+    if use_self_loops is not None:
+        filtered_files = [f for f in filtered_files if f['use_self_loops'] == use_self_loops]
+    
+    if not filtered_files:
+        print("No files match the specified criteria. Available files:")
+        for file_info in matching_files:
+            print(f"  {file_info['filepath'].name}: target={file_info['target_column']}, multitask={file_info['multitask']}, global={file_info['use_global_features']}, self_loops={file_info['use_self_loops']}")
+        return None
+    
+    if len(filtered_files) == 1:
+        selected_file = filtered_files[0]
+        print(f"\nSelected file: {selected_file['filepath'].name}")
+        return selected_file
+    
+    # Multiple matches - pick the one with best validation score
+    best_file = max(filtered_files, key=lambda x: x['best_value'] or 0)
+    print(f"\nMultiple matches found. Selected best performing file: {best_file['filepath'].name}")
+    print(f"Best validation score: {best_file['best_value']}")
+    
+    return best_file
+
 def load_best_params(filepath):
     """Load best parameters from JSON file."""
     with open(filepath, 'r') as f:
@@ -185,6 +328,18 @@ def create_args_from_params(params, use_self_loops, epochs, patience, task_type)
     # Set parameters from the loaded best params
     for key, value in params.items():
         setattr(args, key, value)
+    
+    # Ensure essential attributes exist with defaults if missing
+    if not hasattr(args, 'multitask'):
+        args.multitask = params.get('multitask', False)
+    if not hasattr(args, 'target_column'):
+        args.target_column = params.get('target_column', None)
+    if not hasattr(args, 'multitask_assays'):
+        args.multitask_assays = params.get('multitask_assays', None)
+    if not hasattr(args, 'multitask_targets'):
+        args.multitask_targets = params.get('multitask_targets', None)
+    if not hasattr(args, 'use_global_features'):
+        args.use_global_features = params.get('use_global_features', False)
     
     # Add the self_loops parameter
     args.use_self_loops = use_self_loops
@@ -222,13 +377,13 @@ def main():
     parser.add_argument("--dataset_name", type=str, required=True, 
                        help="Dataset name (e.g., HIV, QM9, QM8, TOXCAST)")
     parser.add_argument("--target_column", type=str, default=None,
-                       help="Target column (required for single-task, ignored for multitask)")
+                       help="Target column (optional filter for single-task)")
     parser.add_argument("--multitask", action="store_true",
-                       help="Use multitask learning")
+                       help="Filter for multitask learning experiments")
     parser.add_argument("--use_global_features", action="store_true",
-                       help="Use global molecular features")
+                       help="Filter for experiments with global molecular features")
     parser.add_argument("--no_self_loops", action="store_true",
-                       help="Disable self loops in the GNN (default: use self loops)")
+                       help="Filter for experiments without self loops")
     parser.add_argument("--epochs", type=int, default=200,
                        help="Number of training epochs (default: 200)")
     parser.add_argument("--patience", type=int, default=50,
@@ -249,38 +404,46 @@ def main():
     else:
         raise ValueError(f"Unknown dataset: {cmd_args.dataset_name}")
     
-    # Validate arguments
-    if not cmd_args.multitask and cmd_args.target_column is None:
-        raise ValueError("target_column is required when multitask=False")
+    # Convert command line filters to search criteria
+    filter_target_column = cmd_args.target_column if cmd_args.target_column else None
+    filter_multitask = cmd_args.multitask if cmd_args.multitask else None
+    filter_use_global_features = cmd_args.use_global_features if cmd_args.use_global_features else None
+    filter_use_self_loops = not cmd_args.no_self_loops if cmd_args.no_self_loops else None
     
-    # Find the best parameters file
-    best_params_file = find_best_params_file(
+    # Find the best parameters file using the new selection method
+    selected_file_info = select_best_params_file(
         cmd_args.dataset_name,
-        cmd_args.target_column,
-        cmd_args.multitask,
-        cmd_args.use_global_features,
-        task_type
+        task_type,
+        target_column=filter_target_column,
+        multitask=filter_multitask,
+        use_global_features=filter_use_global_features,
+        use_self_loops=filter_use_self_loops
     )
     
-    if best_params_file is None or not best_params_file.exists():
+    if selected_file_info is None:
         print(f"Error: Could not find best parameters file for the given configuration.")
         return
     
-    print(f"Loading best parameters from: {best_params_file}")
+    best_params_file = selected_file_info['filepath']
+    best_params = selected_file_info['params']
     
-    # Load best parameters
-    best_params = load_best_params(best_params_file)
-    print(f"Best parameters loaded:")
-    for key, value in best_params.items():
-        print(f"  {key}: {value}")
+    print(f"\nLoading best parameters from: {best_params_file}")
+    print(f"Parameters from selected file:")
+    print(f"  Dataset: {best_params.get('dataset_name')}")
+    print(f"  Task type: {best_params.get('task_type')}")
+    print(f"  Target column: {best_params.get('target_column')}")
+    print(f"  Multitask: {best_params.get('multitask', False)}")
+    print(f"  Use global features: {best_params.get('use_global_features', False)}")
+    print(f"  Use self loops: {not best_params.get('no_self_loops', False)}")
+    print(f"  Best validation value: {best_params.get('best_value')}")
     
-    # Create arguments object
-    args = create_args_from_params(best_params, not cmd_args.no_self_loops, cmd_args.epochs, cmd_args.patience, task_type)
+    # Use settings from the selected file (NOT command line args)
+    actual_use_self_loops = not best_params.get('no_self_loops', False)
     
-    # Override with command line arguments
-    args.use_self_loops = not cmd_args.no_self_loops  # Default True, False only if --no_self_loops is used
+    # Create arguments object using the actual file settings
+    args = create_args_from_params(best_params, actual_use_self_loops, cmd_args.epochs, cmd_args.patience, task_type)
     
-    print(f"\nTraining configuration:")
+    print(f"\nActual training configuration (from selected file):")
     print(f"  Dataset: {args.dataset_name}")
     print(f"  Task type: {task_type}")
     print(f"  Multitask: {args.multitask}")

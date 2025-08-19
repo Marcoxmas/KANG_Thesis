@@ -7,6 +7,7 @@ param(
     [switch]$UseSubset = $false,
     [double]$SubsetRatio = 0.3,
     [switch]$UseGlobalFeatures = $false,
+    [switch]$NoSelfLoops = $false,
     [switch]$QuickMode = $false,
     [switch]$Help = $false
 )
@@ -121,7 +122,11 @@ function Run-MultiTaskOptunaSearch {
     if ($UseGlobalFeatures) {
         $cmd += " --use_global_features"
     }
-    
+
+    if ($NoSelfLoops) {
+        $cmd += " --no_self_loops"
+    }
+
     Write-Host "Executing: $cmd" -ForegroundColor Cyan
     
     try {
@@ -181,5 +186,5 @@ if ($failedTests.Count -gt 0) {
     }
 }
 Write-Host ""
-Write-Host "Results saved in: experiments/optuna_search/" -ForegroundColor Yellow
+Write-Host "You can now run 'python train_with_best_params.py' to train models with the best hyperparameters found." -ForegroundColor Yellow
 Write-Host "Use python analyze_optuna_results.py to analyze results" -ForegroundColor White

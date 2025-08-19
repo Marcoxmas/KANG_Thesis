@@ -26,6 +26,13 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             try:
                 with open(os.path.join(results_dir, result_file), 'r') as f:
                     result_data = json.load(f)
+                    # Convert no_self_loops to use_self_loops for consistency
+                    if "no_self_loops" in result_data:
+                        result_data["use_self_loops"] = not result_data["no_self_loops"]
+                    elif "use_self_loops" not in result_data:
+                        # Default to None/unknown for older optuna results
+                        result_data["use_self_loops"] = None
+                    
                     result_data["_source"] = "optuna"
                     result_data["_file"] = result_file
                     optuna_results.append(result_data)
@@ -50,6 +57,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                         "multitask_assays": training_data["training_info"]["multitask_assays"],
                         "multitask_targets": training_data["training_info"]["multitask_targets"],
                         "use_global_features": training_data["training_info"]["use_global_features"],
+                        "use_self_loops": training_data["training_info"]["use_self_loops"],
                         "final_test_metric": training_data["results"]["final_test_metric"],
                         "validation_score": training_data["results"].get("best_validation_accuracy") or training_data["results"].get("best_validation_score"),
                         "seed": training_data["training_info"]["seed"],
@@ -100,6 +108,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             "multitask_assays": result.get("multitask_assays"),
             "multitask_targets": result.get("multitask_targets"),
             "use_global_features": result.get("use_global_features"),
+            "use_self_loops": result.get("use_self_loops"),  # New field for self loops tracking
             "final_test_metric": result.get("final_test_metric"),
             "validation_score": result.get("validation_score"),
             "n_trials": result.get("n_trials"),
@@ -139,15 +148,26 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
     summary_report.append(f"With global features: {len(df_results[df_results['use_global_features'] == True])}")
     summary_report.append(f"Without global features: {len(df_results[df_results['use_global_features'] == False])}")
     
+    # Self loops statistics (where available) - treat unknown as with self loops
+    self_loops_true = len(df_results[df_results['use_self_loops'] == True])
+    self_loops_false = len(df_results[df_results['use_self_loops'] == False])
+    self_loops_unknown = len(df_results[df_results['use_self_loops'].isna()])
+    
+    # Combine true and unknown as "with self loops"
+    self_loops_with = self_loops_true + self_loops_unknown
+    
+    if self_loops_with > 0 or self_loops_false > 0:
+        summary_report.append(f"With self loops (incl. unknown): {self_loops_with}")
+        summary_report.append(f"Without self loops: {self_loops_false}")
+        if self_loops_unknown > 0:
+            summary_report.append(f"  (of which {self_loops_unknown} had unknown self loops status)")
+    
     # Seed statistics (only for training results)
     training_df = df_results[df_results['source'] == 'training']
     if len(training_df) > 0:
         unique_seeds = training_df['seed'].dropna().nunique()
         summary_report.append(f"Training experiments with seed tracking: {len(training_df)}")
         summary_report.append(f"Unique seeds used: {unique_seeds}")
-        if unique_seeds > 0:
-            seed_counts = training_df['seed'].value_counts()
-            summary_report.append(f"Most common seed: {seed_counts.index[0]} (used {seed_counts.iloc[0]} times)")
     
     summary_report.append("")
     
@@ -159,7 +179,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         dataset_data = df_results[df_results['dataset_name'] == dataset]
         summary_report.append(f"\n{dataset}:")
         
-        # Group by global features and task type
+        # Group by global features, self loops, and task type
         for use_global in [True, False]:
             global_data = dataset_data[dataset_data['use_global_features'] == use_global]
             if len(global_data) == 0:
@@ -167,31 +187,46 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 
             global_str = "with global" if use_global else "without global"
             
-            # Separate by task type and multi-task status
-            for task_type in ['regression', 'classification']:
-                task_data = global_data[global_data['task_type'] == task_type]
-                if len(task_data) == 0:
+            # Group by self loops (treat unknown/None as True)
+            for use_self_loops in [True, False]:
+                if use_self_loops:
+                    # Include both explicit True and unknown/None cases
+                    self_loops_data = global_data[(global_data['use_self_loops'] == True) | (global_data['use_self_loops'].isna())]
+                    self_loops_str = "with loops"
+                else:
+                    # Only explicit False cases
+                    self_loops_data = global_data[global_data['use_self_loops'] == False]
+                    self_loops_str = "no loops"
+                
+                if len(self_loops_data) == 0:
                     continue
                 
-                # Separate single-task vs multi-task
-                for is_multitask in [False, True]:
-                    mt_data = task_data[task_data['multitask'] == is_multitask]
-                    if len(mt_data) == 0:
+                # Separate by task type and multi-task status
+                for task_type in ['regression', 'classification']:
+                    task_data = self_loops_data[self_loops_data['task_type'] == task_type]
+                    if len(task_data) == 0:
                         continue
                     
-                    mt_str = "multi-task" if is_multitask else "single-task"
-                    
-                    # Calculate statistics
-                    valid_metrics = mt_data['final_test_metric'].dropna()
-                    if len(valid_metrics) > 0:
-                        avg_metric = valid_metrics.mean()
-                        std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
-                        min_metric = valid_metrics.min()
-                        max_metric = valid_metrics.max()
+                    # Separate single-task vs multi-task
+                    for is_multitask in [False, True]:
+                        mt_data = task_data[task_data['multitask'] == is_multitask]
+                        if len(mt_data) == 0:
+                            continue
                         
-                        summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s}: "
-                                            f"avg={avg_metric:.4f} ±{std_metric:.4f} "
-                                            f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")
+                        mt_str = "multi-task" if is_multitask else "single-task"
+                        
+                        # Calculate statistics
+                        valid_metrics = mt_data['final_test_metric'].dropna()
+                        if len(valid_metrics) > 0:
+                            avg_metric = valid_metrics.mean()
+                            std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
+                            min_metric = valid_metrics.min()
+                            max_metric = valid_metrics.max()
+                            
+                            summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s} {self_loops_str:10s}: "
+                                                f"avg={avg_metric:.4f} ±{std_metric:.4f} "
+                                                f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")
+    
     
     # Results by dataset
     summary_report.append("\nDETAILED RESULTS BY DATASET:")
@@ -214,6 +249,12 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 target_desc = row['target_column'] if row['target_column'] else "N/A"
             
             global_str = "with global" if row['use_global_features'] else "without global"
+            self_loops_str = ""
+            if pd.notna(row['use_self_loops']):
+                self_loops_str = "with loops" if row['use_self_loops'] else "no loops"
+            else:
+                self_loops_str = "with loops"  # Treat unknown as with loops
+            
             metric = row['final_test_metric']
             metric_str = f"{metric:.4f}" if metric is not None else "FAILED"
             
@@ -221,7 +262,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             source_str = f"[{row['source']}]"
             seed_str = f"seed={row['seed']}" if row['seed'] is not None else "no-seed"
             
-            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {source_str:9s} {seed_str:10s}: {metric_str}")
+            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {self_loops_str:12s} {source_str:9s} {seed_str:10s}: {metric_str}")
     
     # Add seed analysis for training results
     if len(training_df) > 0:
@@ -229,7 +270,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         summary_report.append("-" * 40)
         
         # Group by configuration (everything except seed) to show seed variations
-        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features']
+        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features', 'use_self_loops']
         
         for _, group in training_df.groupby(config_cols):
             if len(group) > 1:  # Only show configurations with multiple seeds
@@ -239,6 +280,10 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 if group.iloc[0]['multitask']:
                     config_desc += " multitask"
                 config_desc += " with-global" if group.iloc[0]['use_global_features'] else " without-global"
+                
+                # Add self loops information
+                if pd.notna(group.iloc[0]['use_self_loops']):
+                    config_desc += " with-loops" if group.iloc[0]['use_self_loops'] else " no-loops"
                 
                 summary_report.append(f"\n{config_desc}:")
                 

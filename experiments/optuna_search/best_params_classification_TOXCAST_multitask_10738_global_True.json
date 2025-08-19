@@ -1,15 +1,16 @@
 {
-    "lr": 0.002735294546017731,
-    "wd": 0.00012473420372917152,
+    "lr": 0.0013984105616470287,
+    "wd": 2.4737277277179773e-05,
     "hidden_channels": 128,
     "layers": 7,
-    "dropout": 0.14567260400229834,
+    "dropout": 0.27647761635270995,
     "num_grids": 8,
     "batch_size": 128,
-    "gamma": 2.187445732525126,
+    "gamma": 2.489289022700018,
     "use_subset": false,
     "subset_ratio": 0.3,
     "use_global_features": true,
+    "no_self_loops": true,
     "task_type": "classification",
     "dataset_name": "TOXCAST",
     "target_column": "mu",
@@ -23,6 +24,6 @@
     ],
     "multitask_targets": null,
     "task_weights": null,
-    "best_value": 0.8551698243290387,
+    "best_value": 0.86001171921293,
     "n_trials": 20
 }

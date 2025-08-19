@@ -105,7 +105,10 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             param_file += "_multitask_default"
     elif target_column:
         param_file += f"_{target_column}"
-    param_file += f"_global_{use_global_features}.json"
+    
+    # Add self loops information to filename
+    self_loops_suffix = "with_loops" if not no_self_loops else "no_loops"
+    param_file += f"_global_{use_global_features}_{self_loops_suffix}.json"
 
     # Save best hyperparameters
     with open(param_file, "w") as f:

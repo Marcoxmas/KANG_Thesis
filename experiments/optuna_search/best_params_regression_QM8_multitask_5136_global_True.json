@@ -1,15 +1,16 @@
 {
-    "lr": 0.003911060309677611,
-    "wd": 0.00018759176998925988,
-    "hidden_channels": 64,
-    "layers": 3,
-    "dropout": 0.4734002199279508,
-    "num_grids": 4,
-    "batch_size": 128,
-    "gamma": 1.528971589749108,
+    "lr": 0.0010026971553379585,
+    "wd": 0.0003835355153119756,
+    "hidden_channels": 256,
+    "layers": 4,
+    "dropout": 0.49876950254612007,
+    "num_grids": 8,
+    "batch_size": 64,
+    "gamma": 1.7878460531021316,
     "use_subset": true,
     "subset_ratio": 0.3,
     "use_global_features": true,
+    "no_self_loops": true,
     "task_type": "regression",
     "dataset_name": "QM8",
     "target_column": "mu",
@@ -30,6 +31,6 @@
         "f2-CAM"
     ],
     "task_weights": null,
-    "best_value": 0.024254979384134106,
+    "best_value": 0.024124583522273365,
     "n_trials": 20
 }

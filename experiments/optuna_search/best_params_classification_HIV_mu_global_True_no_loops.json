@@ -1,0 +1,23 @@
+{
+    "lr": 0.0014712493425197296,
+    "wd": 7.672723350917934e-05,
+    "hidden_channels": 64,
+    "layers": 7,
+    "dropout": 0.43079079289859934,
+    "num_grids": 4,
+    "batch_size": 128,
+    "gamma": 1.7013388066100323,
+    "use_subset": true,
+    "subset_ratio": 0.5,
+    "use_global_features": true,
+    "no_self_loops": true,
+    "task_type": "classification",
+    "dataset_name": "HIV",
+    "target_column": "mu",
+    "multitask": false,
+    "multitask_assays": null,
+    "multitask_targets": null,
+    "task_weights": null,
+    "best_value": 0.8416189484643415,
+    "n_trials": 20
+}

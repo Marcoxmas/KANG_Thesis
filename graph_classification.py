@@ -444,20 +444,38 @@ def graph_classification_multitask(args, return_history=False):
 	if args.use_roc_auc:
 		print("Note: Multi-task with ROC-AUC evaluation")
 
-	# Create multi-task model
-	model = KANG_MultiTask(
-		dataset.num_node_features,
-		args.hidden_channels,
-		len(target_assays),  # Number of tasks
-		args.layers,
-		args.grid_min,
-		args.grid_max,
-		args.num_grids,
-		args.dropout,
-		device=device,
-		use_global_features=args.use_global_features,
-		use_self_loops=not getattr(args, 'no_self_loops', False)
-	).to(device)
+	# Create multi-task model - select based on single_head parameter
+	if getattr(args, 'single_head', False):
+		from src.KANG_MultiTask_SingleHead import KANG_MultiTask_SingleHead
+		model = KANG_MultiTask_SingleHead(
+			dataset.num_node_features,
+			args.hidden_channels,
+			len(target_assays),  # Number of tasks
+			args.layers,
+			args.grid_min,
+			args.grid_max,
+			args.num_grids,
+			args.dropout,
+			device=device,
+			use_global_features=args.use_global_features,
+			use_self_loops=not getattr(args, 'no_self_loops', False)
+		).to(device)
+		print("Using single head multi-task model")
+	else:
+		model = KANG_MultiTask(
+			dataset.num_node_features,
+			args.hidden_channels,
+			len(target_assays),  # Number of tasks
+			args.layers,
+			args.grid_min,
+			args.grid_max,
+			args.num_grids,
+			args.dropout,
+			device=device,
+			use_global_features=args.use_global_features,
+			use_self_loops=not getattr(args, 'no_self_loops', False)
+		).to(device)
+		print("Using multi head multi-task model")
 	
 	print(f"Multi-task model created with {sum(p.numel() for p in model.parameters()):,} parameters")
 	

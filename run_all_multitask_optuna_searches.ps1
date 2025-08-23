@@ -9,6 +9,7 @@ param(
     [switch]$UseGlobalFeatures = $false,
     [switch]$NoSelfLoops = $false,
     [switch]$QuickMode = $false,
+    [switch]$SingleHead = $false,
     [switch]$Help = $false
 )
 
@@ -125,6 +126,10 @@ function Run-MultiTaskOptunaSearch {
 
     if ($NoSelfLoops) {
         $cmd += " --no_self_loops"
+    }
+
+    if ($SingleHead) {
+        $cmd += " --single_head"
     }
 
     Write-Host "Executing: $cmd" -ForegroundColor Cyan

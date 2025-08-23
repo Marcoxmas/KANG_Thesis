@@ -1,0 +1,103 @@
+================================================================================
+COMBINED RESULTS SUMMARY (OPTUNA + TRAINING)
+================================================================================
+Generated: 2025-08-22 10:13:57
+Total results analyzed: 47
+  - Optuna hyperparameter search results: 41
+  - Training results with seed tracking: 6
+
+OVERALL STATISTICS:
+----------------------------------------
+Total experiments completed: 47
+Unique datasets: 4
+Regression experiments: 34
+Classification experiments: 13
+Multi-task experiments: 15
+Single-task experiments: 32
+With global features: 46
+Without global features: 1
+Multitask single head experiments: 6
+Multitask multi head experiments: 9
+With self loops (incl. unknown): 40
+Without self loops: 7
+  (of which 31 had unknown self loops status)
+Training experiments with seed tracking: 6
+Unique seeds used: 1
+
+DATASET AVERAGES:
+----------------------------------------
+
+HIV:
+  classification single-task with global     no loops   N/A       : avg=0.7607 ±0.0000 (min=0.7607, max=0.7607, n=1)
+
+QM8:
+  regression   multi-task with global     with loops singlehead: avg=0.0194 ±0.0000 (min=0.0194, max=0.0194, n=1)
+
+QM9:
+  regression   multi-task with global     with loops singlehead: avg=2.8898 ±0.0000 (min=2.8898, max=2.8898, n=1)
+  regression   multi-task with global     no loops   multihead : avg=3.4874 ±0.0000 (min=3.4874, max=3.4874, n=1)
+
+TOXCAST:
+  classification multi-task with global     with loops singlehead: avg=0.8425 ±0.0000 (min=0.8425, max=0.8425, n=1)
+  classification multi-task with global     no loops   multihead : avg=0.8364 ±0.0000 (min=0.8364, max=0.8364, n=1)
+
+DETAILED RESULTS BY DATASET:
+----------------------------------------
+
+HIV:
+  classification mu                   with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification mu                   with global     no loops     N/A        [optuna]  seed=nan  : nan
+  classification mu                   with global     no loops     N/A        [training] seed=42.0 : 0.7607
+
+QM8:
+  regression   E1-CAM               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   E1-CC2               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   E1-PBE0              with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   E2-CAM               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   E2-CC2               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   E2-PBE0              with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f1-CAM               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f1-CC2               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f1-PBE0              with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f2-CAM               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f2-CC2               with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   f2-PBE0              with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) with global     with loops   multihead  [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) without global  with loops   multihead  [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) with global     no loops     multihead  [optuna]  seed=nan  : nan
+  regression   MT-12targets(singlehead) with global     with loops   singlehead [optuna]  seed=nan  : nan
+  regression   MT-12targets(singlehead) with global     with loops   singlehead [training] seed=42.0 : 0.0194
+
+QM9:
+  regression   alpha                with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   cv                   with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   g298                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   gap                  with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   h298                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   homo                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   lumo                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) with global     with loops   multihead  [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) with global     no loops     multihead  [optuna]  seed=nan  : nan
+  regression   mu                   with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   r2                   with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   MT-12targets(singlehead) with global     with loops   singlehead [optuna]  seed=nan  : nan
+  regression   u0                   with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   u298                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   zpve                 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  regression   MT-12targets(multihead) with global     no loops     multihead  [training] seed=42.0 : 3.4874
+  regression   MT-12targets(singlehead) with global     with loops   singlehead [training] seed=42.0 : 2.8898
+
+TOXCAST:
+  classification MT-5assays(multihead) with global     with loops   multihead  [optuna]  seed=nan  : nan
+  classification MT-5assays(multihead) with global     no loops     multihead  [optuna]  seed=nan  : nan
+  classification MT-5assays(singlehead) with global     with loops   singlehead [optuna]  seed=nan  : nan
+  classification TOX21_AhR_LUC_Agonist with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification TOX21_Aromatase_Inhibition with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification TOX21_AutoFluor_HEK293_Cell_blue with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification TOX21_p53_BLA_p3_ch1 with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification TOX21_p53_BLA_p4_ratio with global     with loops   N/A        [optuna]  seed=nan  : nan
+  classification MT-5assays(multihead) with global     no loops     multihead  [training] seed=42.0 : 0.8364
+  classification MT-5assays(singlehead) with global     with loops   singlehead [training] seed=42.0 : 0.8425
+
+SEED ANALYSIS (TRAINING RESULTS ONLY):
+----------------------------------------

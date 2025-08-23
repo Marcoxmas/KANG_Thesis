@@ -1,0 +1,48 @@
+task_type,dataset_name,target_column,multitask,multitask_info,multitask_assays,multitask_targets,use_global_features,use_self_loops,head_type,final_test_metric,validation_score,n_trials,seed,source,timestamp,filename
+classification,HIV,mu,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_HIV_mu_global_True.json
+classification,HIV,mu,False,,,,True,False,N/A,,,20.0,,optuna,,best_params_classification_HIV_mu_global_True_no_loops.json
+classification,TOXCAST,mu,True,MT(5 assays),"['TOX21_AhR_LUC_Agonist', 'TOX21_Aromatase_Inhibition', 'TOX21_AutoFluor_HEK293_Cell_blue', 'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p4_ratio']",,True,True,multihead,,,20.0,,optuna,,best_params_classification_TOXCAST_multihead_multitask_10738_global_True_with_loops.json
+classification,TOXCAST,mu,True,MT(5 assays),"['TOX21_AhR_LUC_Agonist', 'TOX21_Aromatase_Inhibition', 'TOX21_AutoFluor_HEK293_Cell_blue', 'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p4_ratio']",,True,False,multihead,,,20.0,,optuna,,best_params_classification_TOXCAST_multitask_10738_global_True.json
+classification,TOXCAST,mu,True,MT(5 assays),"['TOX21_AhR_LUC_Agonist', 'TOX21_Aromatase_Inhibition', 'TOX21_AutoFluor_HEK293_Cell_blue', 'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p4_ratio']",,True,True,singlehead,,,20.0,,optuna,,best_params_classification_TOXCAST_singlehead_multitask_10738_global_True_with_loops.json
+classification,TOXCAST,TOX21_AhR_LUC_Agonist,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_TOXCAST_TOX21_AhR_LUC_Agonist_global_True.json
+classification,TOXCAST,TOX21_Aromatase_Inhibition,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_TOXCAST_TOX21_Aromatase_Inhibition_global_True.json
+classification,TOXCAST,TOX21_AutoFluor_HEK293_Cell_blue,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_TOXCAST_TOX21_AutoFluor_HEK293_Cell_blue_global_True.json
+classification,TOXCAST,TOX21_p53_BLA_p3_ch1,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_TOXCAST_TOX21_p53_BLA_p3_ch1_global_True.json
+classification,TOXCAST,TOX21_p53_BLA_p4_ratio,False,,,,True,,N/A,,,20.0,,optuna,,best_params_classification_TOXCAST_TOX21_p53_BLA_p4_ratio_global_True.json
+regression,QM8,E1-CAM,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E1-CAM_global_True.json
+regression,QM8,E1-CC2,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E1-CC2_global_True.json
+regression,QM8,E1-PBE0,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E1-PBE0_global_True.json
+regression,QM8,E2-CAM,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E2-CAM_global_True.json
+regression,QM8,E2-CC2,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E2-CC2_global_True.json
+regression,QM8,E2-PBE0,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_E2-PBE0_global_True.json
+regression,QM8,f1-CAM,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f1-CAM_global_True.json
+regression,QM8,f1-CC2,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f1-CC2_global_True.json
+regression,QM8,f1-PBE0,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f1-PBE0_global_True.json
+regression,QM8,f2-CAM,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f2-CAM_global_True.json
+regression,QM8,f2-CC2,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f2-CC2_global_True.json
+regression,QM8,f2-PBE0,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM8_f2-PBE0_global_True.json
+regression,QM8,mu,True,MT(12 targets),,"['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM']",True,True,multihead,,,20.0,,optuna,,best_params_regression_QM8_multihead_multitask_5136_global_True_with_loops.json
+regression,QM8,mu,True,MT(12 targets),,"['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM']",False,,multihead,,,20.0,,optuna,,best_params_regression_QM8_multitask_5136_global_False.json
+regression,QM8,mu,True,MT(12 targets),,"['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM']",True,False,multihead,,,20.0,,optuna,,best_params_regression_QM8_multitask_5136_global_True.json
+regression,QM8,mu,True,MT(12 targets),,"['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM']",True,True,singlehead,,,20.0,,optuna,,best_params_regression_QM8_singlehead_multitask_5136_global_True_with_loops.json
+regression,QM9,alpha,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_alpha_global_True.json
+regression,QM9,cv,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_cv_global_True.json
+regression,QM9,g298,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_g298_global_True.json
+regression,QM9,gap,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_gap_global_True.json
+regression,QM9,h298,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_h298_global_True.json
+regression,QM9,homo,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_homo_global_True.json
+regression,QM9,lumo,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_lumo_global_True.json
+regression,QM9,mu,True,MT(12 targets),,"['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']",True,True,multihead,,,20.0,,optuna,,best_params_regression_QM9_multihead_multitask_4100_global_True_with_loops.json
+regression,QM9,mu,True,MT(12 targets),,"['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']",True,False,multihead,,,20.0,,optuna,,best_params_regression_QM9_multitask_4100_global_True.json
+regression,QM9,mu,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_mu_global_True.json
+regression,QM9,r2,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_r2_global_True.json
+regression,QM9,mu,True,MT(12 targets),,"['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']",True,True,singlehead,,,20.0,,optuna,,best_params_regression_QM9_singlehead_multitask_4100_global_True_with_loops.json
+regression,QM9,u0,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_u0_global_True.json
+regression,QM9,u298,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_u298_global_True.json
+regression,QM9,zpve,False,,,,True,,N/A,,,20.0,,optuna,,best_params_regression_QM9_zpve_global_True.json
+classification,HIV,mu,False,,,,True,False,N/A,0.7606674752051615,0.7998245549687011,,42.0,training,2025-08-18T23:33:06.604547,training_result_classification_HIV_mu_global_True_no_loops_seed_42.json
+classification,TOXCAST,mu,True,MT(5 assays),"['TOX21_AhR_LUC_Agonist', 'TOX21_Aromatase_Inhibition', 'TOX21_AutoFluor_HEK293_Cell_blue', 'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p4_ratio']",,True,False,multihead,0.8364121431559484,0.828895962061911,,42.0,training,2025-08-18T19:13:39.255106,training_result_classification_TOXCAST_multitask_10738_global_True_seed_42.json
+classification,TOXCAST,mu,True,MT(5 assays),"['TOX21_AhR_LUC_Agonist', 'TOX21_Aromatase_Inhibition', 'TOX21_AutoFluor_HEK293_Cell_blue', 'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p4_ratio']",,True,True,singlehead,0.8424804164217189,0.8285931150410587,,42.0,training,2025-08-21T10:50:02.205740,training_result_classification_TOXCAST_singlehead_multitask_10738_global_True_with_loops_seed_42.json
+regression,QM8,mu,True,MT(12 targets),,"['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM']",True,True,singlehead,0.019383660563080704,0.020101283671078395,,42.0,training,2025-08-20T10:53:48.055456,training_result_regression_QM8_singlehead_multitask_5136_global_True_with_loops_seed_42.json
+regression,QM9,mu,True,MT(12 targets),,"['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']",True,False,multihead,3.487429372363261,3.510967035988136,,42.0,training,2025-08-18T18:58:06.400990,training_result_regression_QM9_multitask_4100_global_True_seed_42.json
+regression,QM9,mu,True,MT(12 targets),,"['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']",True,True,singlehead,2.8897793183057434,2.9573292266883566,,42.0,training,2025-08-21T03:25:50.544398,training_result_regression_QM9_singlehead_multitask_4100_global_True_with_loops_seed_42.json

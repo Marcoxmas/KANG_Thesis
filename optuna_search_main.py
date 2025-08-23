@@ -25,9 +25,10 @@ def get_args():
                        help="Specific targets for multi-task regression (QM8/QM9). If None, uses default targets")
     parser.add_argument("--task_weights", type=str, default=None, 
                        help="JSON string with task weights for multi-task loss")
+    parser.add_argument("--single_head", action="store_true", help="Use single head for multitask models")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None, single_head=False):
     def objective(trial):
         try:
             import argparse
@@ -59,6 +60,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.multitask_assays = multitask_assays
             args.multitask_targets = multitask_targets
             args.task_weights = task_weights
+            args.single_head = single_head
 
             if task_type == "classification":
                 print("Running classification with:", args)
@@ -88,16 +90,19 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     results_dir = "experiments/optuna_search"
     os.makedirs(results_dir, exist_ok=True)
     
-    # Create unique filename based on dataset, target, and multi-task settings
+    # Base filename
     param_file = f"{results_dir}/best_params_{task_type}_{dataset_name}"
+    
+    # Add head type to filename only for multitask
     if multitask:
+        head_type = "singlehead" if single_head else "multihead"
+        param_file += f"_{head_type}"
+        
         if multitask_assays:
-            # Create a short hash for assays
             assay_str = " ".join(sorted(multitask_assays))
             assay_hash = str(sum(ord(c) for c in assay_str) % 10**8)
             param_file += f"_multitask_{assay_hash}"
         elif multitask_targets:
-            # Create a short hash for targets
             target_str = " ".join(sorted(multitask_targets))
             target_hash = str(sum(ord(c) for c in target_str) % 10**8)
             param_file += f"_multitask_{target_hash}"
@@ -106,7 +111,6 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
     elif target_column:
         param_file += f"_{target_column}"
     
-    # Add self loops information to filename
     self_loops_suffix = "with_loops" if not no_self_loops else "no_loops"
     param_file += f"_global_{use_global_features}_{self_loops_suffix}.json"
 
@@ -124,6 +128,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         best_params["multitask_assays"] = multitask_assays
         best_params["multitask_targets"] = multitask_targets
         best_params["task_weights"] = task_weights
+        best_params["single_head"] = single_head
         best_params["best_value"] = study.best_value
         best_params["n_trials"] = n_trials
         json.dump(best_params, f, indent=4)
@@ -209,6 +214,7 @@ if __name__ == "__main__":
     if args.multitask_targets and len(args.multitask_targets) == 1 and ',' in args.multitask_targets[0]:
         args.multitask_targets = args.multitask_targets[0].split(',')
     
+    # Pass single_head argument to optuna_search
     validation_score, best_params = optuna_search(
         args.task, 
         args.dataset_name, 
@@ -221,7 +227,8 @@ if __name__ == "__main__":
         args.multitask,
         args.multitask_assays,
         args.multitask_targets,
-        args.task_weights
+        args.task_weights,
+        args.single_head
     )
     
     print(f"Hyperparameter search completed with validation score: {validation_score}")

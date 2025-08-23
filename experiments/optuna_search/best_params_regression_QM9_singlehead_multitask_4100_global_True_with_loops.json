@@ -1,16 +1,16 @@
 {
-    "lr": 0.0027572280218358457,
-    "wd": 1.6621120263346145e-05,
-    "hidden_channels": 64,
+    "lr": 0.0010316713240622428,
+    "wd": 3.614507106969468e-05,
+    "hidden_channels": 256,
     "layers": 7,
-    "dropout": 0.1071276923992119,
+    "dropout": 0.13783192989616216,
     "num_grids": 4,
-    "batch_size": 128,
-    "gamma": 2.3967253078203976,
+    "batch_size": 64,
+    "gamma": 1.6022895135538346,
     "use_subset": true,
     "subset_ratio": 0.3,
     "use_global_features": true,
-    "no_self_loops": true,
+    "no_self_loops": false,
     "task_type": "regression",
     "dataset_name": "QM9",
     "target_column": "mu",
@@ -31,6 +31,7 @@
         "cv"
     ],
     "task_weights": null,
-    "best_value": 6.133537785085797,
+    "single_head": true,
+    "best_value": 4.874472677079369,
     "n_trials": 20
 }

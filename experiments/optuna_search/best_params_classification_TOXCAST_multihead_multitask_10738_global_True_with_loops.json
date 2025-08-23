@@ -1,0 +1,30 @@
+{
+    "lr": 0.0023159159069088765,
+    "wd": 0.00022873000793922156,
+    "hidden_channels": 64,
+    "layers": 3,
+    "dropout": 0.332842142242475,
+    "num_grids": 6,
+    "batch_size": 128,
+    "gamma": 1.2509586609037942,
+    "use_subset": false,
+    "subset_ratio": 0.3,
+    "use_global_features": true,
+    "no_self_loops": false,
+    "task_type": "classification",
+    "dataset_name": "TOXCAST",
+    "target_column": "mu",
+    "multitask": true,
+    "multitask_assays": [
+        "TOX21_AhR_LUC_Agonist",
+        "TOX21_Aromatase_Inhibition",
+        "TOX21_AutoFluor_HEK293_Cell_blue",
+        "TOX21_p53_BLA_p3_ch1",
+        "TOX21_p53_BLA_p4_ratio"
+    ],
+    "multitask_targets": null,
+    "task_weights": null,
+    "single_head": false,
+    "best_value": 0.8502383231497406,
+    "n_trials": 20
+}

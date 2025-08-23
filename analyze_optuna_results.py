@@ -20,7 +20,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
     # Find Optuna result files (legacy format)
     optuna_results = []
     if os.path.exists(results_dir):
-        result_files = [f for f in os.listdir(results_dir) if f.startswith("result_") and f.endswith(".json")]
+        result_files = [f for f in os.listdir(results_dir) if f.startswith("best_params_") and f.endswith(".json")]
         
         for result_file in result_files:
             try:
@@ -33,6 +33,20 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                         # Default to None/unknown for older optuna results
                         result_data["use_self_loops"] = None
                     
+                    # Parse head type from filename - only for multitask
+                    if "singlehead" in result_file:
+                        result_data["head_type"] = "singlehead"
+                    elif "multihead" in result_file:
+                        result_data["head_type"] = "multihead"
+                    else:
+                        # For legacy files, check the multitask status and single_head parameter
+                        is_multitask = result_data.get("multitask", False)
+                        if is_multitask:
+                            result_data["head_type"] = "singlehead" if result_data.get("single_head", False) else "multihead"
+                        else:
+                            # Single-task doesn't have head type distinction
+                            result_data["head_type"] = "N/A"
+                    
                     result_data["_source"] = "optuna"
                     result_data["_file"] = result_file
                     optuna_results.append(result_data)
@@ -43,11 +57,24 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
     training_results = []
     if os.path.exists(training_results_dir):
         training_files = [f for f in os.listdir(training_results_dir) if f.startswith("training_result_") and f.endswith(".json")]
-        
         for training_file in training_files:
             try:
                 with open(os.path.join(training_results_dir, training_file), 'r') as f:
                     training_data = json.load(f)
+                    # Parse head type from filename - only for multitask
+                    if "singlehead" in training_file:
+                        head_type = "singlehead"
+                    elif "multihead" in training_file:
+                        head_type = "multihead"
+                    else:
+                        # For legacy files or single-task, check the single_head parameter and multitask status
+                        is_multitask = training_data["training_info"]["multitask"]
+                        if is_multitask:
+                            # For multitask, determine head type from parameter if available
+                            head_type = "singlehead" if training_data.get("single_head", False) else "multihead"
+                        else:
+                            # Single-task doesn't have head type distinction
+                            head_type = "N/A"
                     # Convert training result format to match optuna format for analysis
                     converted_data = {
                         "task_type": training_data["training_info"]["task_type"],
@@ -58,6 +85,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                         "multitask_targets": training_data["training_info"]["multitask_targets"],
                         "use_global_features": training_data["training_info"]["use_global_features"],
                         "use_self_loops": training_data["training_info"]["use_self_loops"],
+                        "head_type": head_type,
                         "final_test_metric": training_data["results"]["final_test_metric"],
                         "validation_score": training_data["results"].get("best_validation_accuracy") or training_data["results"].get("best_validation_score"),
                         "seed": training_data["training_info"]["seed"],
@@ -90,7 +118,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         # Handle multi-task information
         multitask = result.get("multitask", False)
         multitask_info = ""
-        
+        head_type = result.get("head_type", "unknown")
         if multitask:
             if result.get("multitask_assays"):
                 multitask_info = f"MT({len(result['multitask_assays'])} assays)"
@@ -98,7 +126,6 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 multitask_info = f"MT({len(result['multitask_targets'])} targets)"
             else:
                 multitask_info = "MT(default)"
-        
         results_summary.append({
             "task_type": result.get("task_type"),
             "dataset_name": result.get("dataset_name"),
@@ -108,14 +135,15 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             "multitask_assays": result.get("multitask_assays"),
             "multitask_targets": result.get("multitask_targets"),
             "use_global_features": result.get("use_global_features"),
-            "use_self_loops": result.get("use_self_loops"),  # New field for self loops tracking
+            "use_self_loops": result.get("use_self_loops"),
+            "head_type": head_type,
             "final_test_metric": result.get("final_test_metric"),
             "validation_score": result.get("validation_score"),
             "n_trials": result.get("n_trials"),
-            "seed": result.get("seed"),  # New field for seed tracking
-            "source": result.get("_source", "optuna"),  # Track data source
-            "timestamp": result.get("timestamp"),  # New field for timestamp
-            "filename": result.get("_file")  # Track source file
+            "seed": result.get("seed"),
+            "source": result.get("_source", "optuna"),
+            "timestamp": result.get("timestamp"),
+            "filename": result.get("_file")
         })
     
     df_results = pd.DataFrame(results_summary)
@@ -147,6 +175,19 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
     summary_report.append(f"Single-task experiments: {len(df_results[df_results['multitask'] == False])}")
     summary_report.append(f"With global features: {len(df_results[df_results['use_global_features'] == True])}")
     summary_report.append(f"Without global features: {len(df_results[df_results['use_global_features'] == False])}")
+    
+    # Head type statistics (only for multitask experiments)
+    multitask_df = df_results[df_results['multitask'] == True]
+    if len(multitask_df) > 0:
+        singlehead_count = len(multitask_df[multitask_df['head_type'] == 'singlehead'])
+        multihead_count = len(multitask_df[multitask_df['head_type'] == 'multihead'])
+        unknown_head_count = len(multitask_df[~multitask_df['head_type'].isin(['singlehead', 'multihead'])])
+        
+        if singlehead_count > 0 or multihead_count > 0:
+            summary_report.append(f"Multitask single head experiments: {singlehead_count}")
+            summary_report.append(f"Multitask multi head experiments: {multihead_count}")
+            if unknown_head_count > 0:
+                summary_report.append(f"Multitask unknown head type: {unknown_head_count}")
     
     # Self loops statistics (where available) - treat unknown as with self loops
     self_loops_true = len(df_results[df_results['use_self_loops'] == True])
@@ -189,45 +230,49 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             
             # Group by self loops (treat unknown/None as True)
             for use_self_loops in [True, False]:
-                if use_self_loops:
-                    # Include both explicit True and unknown/None cases
-                    self_loops_data = global_data[(global_data['use_self_loops'] == True) | (global_data['use_self_loops'].isna())]
-                    self_loops_str = "with loops"
-                else:
-                    # Only explicit False cases
-                    self_loops_data = global_data[global_data['use_self_loops'] == False]
-                    self_loops_str = "no loops"
-                
-                if len(self_loops_data) == 0:
-                    continue
-                
-                # Separate by task type and multi-task status
-                for task_type in ['regression', 'classification']:
-                    task_data = self_loops_data[self_loops_data['task_type'] == task_type]
-                    if len(task_data) == 0:
+                    if use_self_loops:
+                        # Include both explicit True and unknown/None cases
+                        self_loops_data = global_data[(global_data['use_self_loops'] == True) | (global_data['use_self_loops'].isna())]
+                        self_loops_str = "with loops"
+                    else:
+                        # Only explicit False cases
+                        self_loops_data = global_data[global_data['use_self_loops'] == False]
+                        self_loops_str = "no loops"
+                    
+                    if len(self_loops_data) == 0:
                         continue
                     
-                    # Separate single-task vs multi-task
-                    for is_multitask in [False, True]:
-                        mt_data = task_data[task_data['multitask'] == is_multitask]
-                        if len(mt_data) == 0:
+                    # Group by head type - include N/A for single-task experiments
+                    for head_type in ['N/A', 'singlehead', 'multihead']:
+                        head_data = self_loops_data[self_loops_data['head_type'] == head_type]
+                        if len(head_data) == 0:
                             continue
                         
-                        mt_str = "multi-task" if is_multitask else "single-task"
-                        
-                        # Calculate statistics
-                        valid_metrics = mt_data['final_test_metric'].dropna()
-                        if len(valid_metrics) > 0:
-                            avg_metric = valid_metrics.mean()
-                            std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
-                            min_metric = valid_metrics.min()
-                            max_metric = valid_metrics.max()
+                        # Separate by task type and multi-task status
+                        for task_type in ['regression', 'classification']:
+                            task_data = head_data[head_data['task_type'] == task_type]
+                            if len(task_data) == 0:
+                                continue
                             
-                            summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s} {self_loops_str:10s}: "
-                                                f"avg={avg_metric:.4f} ±{std_metric:.4f} "
-                                                f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")
-    
-    
+                            # Separate single-task vs multi-task
+                            for is_multitask in [False, True]:
+                                mt_data = task_data[task_data['multitask'] == is_multitask]
+                                if len(mt_data) == 0:
+                                    continue
+                                
+                                mt_str = "multi-task" if is_multitask else "single-task"
+                                
+                                # Calculate statistics
+                                valid_metrics = mt_data['final_test_metric'].dropna()
+                                if len(valid_metrics) > 0:
+                                    avg_metric = valid_metrics.mean()
+                                    std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
+                                    min_metric = valid_metrics.min()
+                                    max_metric = valid_metrics.max()
+                                    
+                                    summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s} {self_loops_str:10s} {head_type:10s}: "
+                                                        f"avg={avg_metric:.4f} ±{std_metric:.4f} "
+                                                        f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")    
     # Results by dataset
     summary_report.append("\nDETAILED RESULTS BY DATASET:")
     summary_report.append("-" * 40)
@@ -245,6 +290,9 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                     target_desc = f"MT-{len(row['multitask_targets'])}targets"
                 else:
                     target_desc = "MT-default"
+                # Add head type for multitask
+                head_desc = f"({row['head_type']})" if row['head_type'] not in ['N/A', 'unknown'] else ""
+                target_desc += head_desc
             else:
                 target_desc = row['target_column'] if row['target_column'] else "N/A"
             
@@ -255,6 +303,8 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             else:
                 self_loops_str = "with loops"  # Treat unknown as with loops
             
+            head_type_str = row['head_type'] if row['head_type'] != 'unknown' else 'multi-head'
+            
             metric = row['final_test_metric']
             metric_str = f"{metric:.4f}" if metric is not None else "FAILED"
             
@@ -262,7 +312,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             source_str = f"[{row['source']}]"
             seed_str = f"seed={row['seed']}" if row['seed'] is not None else "no-seed"
             
-            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {self_loops_str:12s} {source_str:9s} {seed_str:10s}: {metric_str}")
+            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {self_loops_str:12s} {head_type_str:10s} {source_str:9s} {seed_str:10s}: {metric_str}")
     
     # Add seed analysis for training results
     if len(training_df) > 0:
@@ -270,7 +320,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         summary_report.append("-" * 40)
         
         # Group by configuration (everything except seed) to show seed variations
-        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features', 'use_self_loops']
+        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features', 'use_self_loops', 'head_type']
         
         for _, group in training_df.groupby(config_cols):
             if len(group) > 1:  # Only show configurations with multiple seeds
@@ -284,6 +334,11 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 # Add self loops information
                 if pd.notna(group.iloc[0]['use_self_loops']):
                     config_desc += " with-loops" if group.iloc[0]['use_self_loops'] else " no-loops"
+                
+                # Add head type information
+                head_type = group.iloc[0]['head_type']
+                if head_type != 'unknown':
+                    config_desc += f" {head_type}"
                 
                 summary_report.append(f"\n{config_desc}:")
                 

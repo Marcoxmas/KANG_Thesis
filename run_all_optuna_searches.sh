@@ -11,6 +11,7 @@ N_TRIALS=20
 USE_SUBSET=false
 SUBSET_RATIO=0.3
 USE_GLOBAL_FEATURES=false
+USE_3D_GEO=false
 FIRST_TARGET_ONLY=false
 
 # Function to show help
@@ -21,6 +22,7 @@ show_help() {
     echo "  --use-subset           Use subset during hyperparameter search"
     echo "  --subset-ratio RATIO   Ratio of dataset to use for subset (default: 0.3)"
     echo "  --use-global-features  Use global molecular features"
+    echo "  --use-3d-geo           Use 3D geometric features for molecular graphs"
     echo "  --first-target-only    Test only the first target from each dataset (for quick testing)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -52,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             USE_GLOBAL_FEATURES=true
             shift
             ;;
+        --use-3d-geo)
+            USE_3D_GEO=true
+            shift
+            ;;
         --first-target-only)
             FIRST_TARGET_ONLY=true
             shift
@@ -77,6 +83,7 @@ if [ "$USE_SUBSET" = true ]; then
     echo "Subset ratio: $SUBSET_RATIO"
 fi
 echo "Use global features: $USE_GLOBAL_FEATURES"
+echo "Use 3D geometry: $USE_3D_GEO"
 if [ "$FIRST_TARGET_ONLY" = true ]; then
     echo "QUICK TEST MODE: Testing only the first target from each dataset"
 fi
@@ -174,6 +181,10 @@ run_optuna_search() {
     
     if [ "$USE_GLOBAL_FEATURES" = true ]; then
         cmd="$cmd --use_global_features"
+    fi
+    
+    if [ "$USE_3D_GEO" = true ]; then
+        cmd="$cmd --use_3d_geo"
     fi
     
     echo "Executing: $cmd"

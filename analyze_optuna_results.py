@@ -33,6 +33,10 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                         # Default to None/unknown for older optuna results
                         result_data["use_self_loops"] = None
                     
+                    # Add 3D geometry info if not present (for backwards compatibility)
+                    if "use_3d_geo" not in result_data:
+                        result_data["use_3d_geo"] = False
+                    
                     # Parse head type from filename - only for multitask
                     if "singlehead" in result_file:
                         result_data["head_type"] = "singlehead"
@@ -84,6 +88,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                         "multitask_assays": training_data["training_info"]["multitask_assays"],
                         "multitask_targets": training_data["training_info"]["multitask_targets"],
                         "use_global_features": training_data["training_info"]["use_global_features"],
+                        "use_3d_geo": training_data["training_info"].get("use_3d_geo", False),
                         "use_self_loops": training_data["training_info"]["use_self_loops"],
                         "head_type": head_type,
                         "final_test_metric": training_data["results"]["final_test_metric"],
@@ -135,6 +140,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             "multitask_assays": result.get("multitask_assays"),
             "multitask_targets": result.get("multitask_targets"),
             "use_global_features": result.get("use_global_features"),
+            "use_3d_geo": result.get("use_3d_geo", False),
             "use_self_loops": result.get("use_self_loops"),
             "head_type": head_type,
             "final_test_metric": result.get("final_test_metric"),
@@ -203,6 +209,14 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         if self_loops_unknown > 0:
             summary_report.append(f"  (of which {self_loops_unknown} had unknown self loops status)")
     
+    # 3D geometry statistics
+    geo_3d_true = len(df_results[df_results['use_3d_geo'] == True])
+    geo_3d_false = len(df_results[df_results['use_3d_geo'] == False])
+    
+    if geo_3d_true > 0 or geo_3d_false > 0:
+        summary_report.append(f"With 3D geometry: {geo_3d_true}")
+        summary_report.append(f"Without 3D geometry: {geo_3d_false}")
+    
     # Seed statistics (only for training results)
     training_df = df_results[df_results['source'] == 'training']
     if len(training_df) > 0:
@@ -220,7 +234,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         dataset_data = df_results[df_results['dataset_name'] == dataset]
         summary_report.append(f"\n{dataset}:")
         
-        # Group by global features, self loops, and task type
+        # Group by global features, 3D geometry, self loops, and task type
         for use_global in [True, False]:
             global_data = dataset_data[dataset_data['use_global_features'] == use_global]
             if len(global_data) == 0:
@@ -228,51 +242,59 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 
             global_str = "with global" if use_global else "without global"
             
-            # Group by self loops (treat unknown/None as True)
-            for use_self_loops in [True, False]:
-                    if use_self_loops:
-                        # Include both explicit True and unknown/None cases
-                        self_loops_data = global_data[(global_data['use_self_loops'] == True) | (global_data['use_self_loops'].isna())]
-                        self_loops_str = "with loops"
-                    else:
-                        # Only explicit False cases
-                        self_loops_data = global_data[global_data['use_self_loops'] == False]
-                        self_loops_str = "no loops"
+            # Group by 3D geometry
+            for use_3d_geo in [True, False]:
+                geo_data = global_data[global_data['use_3d_geo'] == use_3d_geo]
+                if len(geo_data) == 0:
+                    continue
                     
-                    if len(self_loops_data) == 0:
-                        continue
-                    
-                    # Group by head type - include N/A for single-task experiments
-                    for head_type in ['N/A', 'singlehead', 'multihead']:
-                        head_data = self_loops_data[self_loops_data['head_type'] == head_type]
-                        if len(head_data) == 0:
+                geo_str = "with 3D geo" if use_3d_geo else "without 3D geo"
+                
+                # Group by self loops (treat unknown/None as True)
+                for use_self_loops in [True, False]:
+                        if use_self_loops:
+                            # Include both explicit True and unknown/None cases
+                            self_loops_data = geo_data[(geo_data['use_self_loops'] == True) | (geo_data['use_self_loops'].isna())]
+                            self_loops_str = "with loops"
+                        else:
+                            # Only explicit False cases
+                            self_loops_data = geo_data[geo_data['use_self_loops'] == False]
+                            self_loops_str = "no loops"
+                        
+                        if len(self_loops_data) == 0:
                             continue
                         
-                        # Separate by task type and multi-task status
-                        for task_type in ['regression', 'classification']:
-                            task_data = head_data[head_data['task_type'] == task_type]
-                            if len(task_data) == 0:
+                        # Group by head type - include N/A for single-task experiments
+                        for head_type in ['N/A', 'singlehead', 'multihead']:
+                            head_data = self_loops_data[self_loops_data['head_type'] == head_type]
+                            if len(head_data) == 0:
                                 continue
                             
-                            # Separate single-task vs multi-task
-                            for is_multitask in [False, True]:
-                                mt_data = task_data[task_data['multitask'] == is_multitask]
-                                if len(mt_data) == 0:
+                            # Separate by task type and multi-task status
+                            for task_type in ['regression', 'classification']:
+                                task_data = head_data[head_data['task_type'] == task_type]
+                                if len(task_data) == 0:
                                     continue
                                 
-                                mt_str = "multi-task" if is_multitask else "single-task"
-                                
-                                # Calculate statistics
-                                valid_metrics = mt_data['final_test_metric'].dropna()
-                                if len(valid_metrics) > 0:
-                                    avg_metric = valid_metrics.mean()
-                                    std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
-                                    min_metric = valid_metrics.min()
-                                    max_metric = valid_metrics.max()
+                                # Separate single-task vs multi-task
+                                for is_multitask in [False, True]:
+                                    mt_data = task_data[task_data['multitask'] == is_multitask]
+                                    if len(mt_data) == 0:
+                                        continue
                                     
-                                    summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s} {self_loops_str:10s} {head_type:10s}: "
-                                                        f"avg={avg_metric:.4f} ±{std_metric:.4f} "
-                                                        f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")    
+                                    mt_str = "multi-task" if is_multitask else "single-task"
+                                    
+                                    # Calculate statistics
+                                    valid_metrics = mt_data['final_test_metric'].dropna()
+                                    if len(valid_metrics) > 0:
+                                        avg_metric = valid_metrics.mean()
+                                        std_metric = valid_metrics.std() if len(valid_metrics) > 1 else 0
+                                        min_metric = valid_metrics.min()
+                                        max_metric = valid_metrics.max()
+                                        
+                                        summary_report.append(f"  {task_type:12s} {mt_str:10s} {global_str:15s} {geo_str:12s} {self_loops_str:10s} {head_type:10s}: "
+                                                            f"avg={avg_metric:.4f} ±{std_metric:.4f} "
+                                                            f"(min={min_metric:.4f}, max={max_metric:.4f}, n={len(valid_metrics)})")    
     # Results by dataset
     summary_report.append("\nDETAILED RESULTS BY DATASET:")
     summary_report.append("-" * 40)
@@ -297,6 +319,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 target_desc = row['target_column'] if row['target_column'] else "N/A"
             
             global_str = "with global" if row['use_global_features'] else "without global"
+            geo_3d_str = "with 3D geo" if row['use_3d_geo'] else "without 3D geo"
             self_loops_str = ""
             if pd.notna(row['use_self_loops']):
                 self_loops_str = "with loops" if row['use_self_loops'] else "no loops"
@@ -312,7 +335,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
             source_str = f"[{row['source']}]"
             seed_str = f"seed={row['seed']}" if row['seed'] is not None else "no-seed"
             
-            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {self_loops_str:12s} {head_type_str:10s} {source_str:9s} {seed_str:10s}: {metric_str}")
+            summary_report.append(f"  {row['task_type']:12s} {target_desc:20s} {global_str:15s} {geo_3d_str:12s} {self_loops_str:12s} {head_type_str:10s} {source_str:9s} {seed_str:10s}: {metric_str}")
     
     # Add seed analysis for training results
     if len(training_df) > 0:
@@ -320,7 +343,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
         summary_report.append("-" * 40)
         
         # Group by configuration (everything except seed) to show seed variations
-        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features', 'use_self_loops', 'head_type']
+        config_cols = ['dataset_name', 'task_type', 'target_column', 'multitask', 'use_global_features', 'use_3d_geo', 'use_self_loops', 'head_type']
         
         for _, group in training_df.groupby(config_cols):
             if len(group) > 1:  # Only show configurations with multiple seeds
@@ -330,6 +353,7 @@ def analyze_optuna_results(results_dir="experiments/optuna_search", training_res
                 if group.iloc[0]['multitask']:
                     config_desc += " multitask"
                 config_desc += " with-global" if group.iloc[0]['use_global_features'] else " without-global"
+                config_desc += " with-3D-geo" if group.iloc[0]['use_3d_geo'] else " without-3D-geo"
                 
                 # Add self loops information
                 if pd.notna(group.iloc[0]['use_self_loops']):

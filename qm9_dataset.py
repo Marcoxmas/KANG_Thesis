@@ -3,15 +3,20 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data
 import os
 import shutil
+from rdkit import RDLogger
 from smiles_to_graph import smiles_to_data
 from src.global_features import get_global_extractor, get_global_feature_dim
 
+# Suppress RDKit warnings for cleaner output
+RDLogger.DisableLog('rdApp.*')
+
 class QM9GraphDataset(InMemoryDataset):
     
-    def __init__(self, root, target_column='mu', use_global_features=False, transform=None, pre_transform=None):
+    def __init__(self, root, target_column='mu', use_global_features=False, use_3d_geo=False, transform=None, pre_transform=None):
         self.csv_file = "data/qm9.csv"
         self.target_column = target_column
         self.use_global_features = use_global_features
+        self.use_3d_geo = use_3d_geo
         
         # Define available target columns for validation
         self.available_targets = [
@@ -53,6 +58,7 @@ class QM9GraphDataset(InMemoryDataset):
         print(f"Processing QM9 dataset with target column: {self.target_column}")
         print(f"Total molecules to process: {len(df)}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
+        print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
         
         for idx, row in df.iterrows():
             if idx % 10000 == 0:
@@ -66,7 +72,16 @@ class QM9GraphDataset(InMemoryDataset):
                 continue
                 
             try:
-                data = smiles_to_data(smiles, labels=float(target_value))
+                # For QM9 with 3D features, use mol_id to get the correct SDF index
+                mol_index = None
+                if self.use_3d_geo and 'mol_id' in row:
+                    mol_id = row['mol_id']
+                    if mol_id.startswith('gdb_'):
+                        # Extract the numeric part and convert to 0-based index
+                        mol_index = int(mol_id.split('_')[1]) - 1
+                
+                data = smiles_to_data(smiles, labels=float(target_value), use_3d_geo=self.use_3d_geo, 
+                                    dataset_type='QM9', mol_index=mol_index)
                 if data is not None and hasattr(data, 'edge_index'):
                     # Extract global features if requested
                     if self.use_global_features:
@@ -120,7 +135,11 @@ class QM9GraphDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        suffix = "_with_global_features" if self.use_global_features else ""
+        suffix = ""
+        if self.use_global_features:
+            suffix += "_with_global_features"
+        if self.use_3d_geo:
+            suffix += "_with_3d_geo"
         return [f'data_{self.target_column}{suffix}.pt']
 
     @property
@@ -173,7 +192,7 @@ class QM9GraphDataset(InMemoryDataset):
 
 
 class QM9MultiTaskDataset(InMemoryDataset):
-    def __init__(self, root, target_columns, use_global_features=False, transform=None, pre_transform=None):
+    def __init__(self, root, target_columns, use_global_features=False, use_3d_geo=False, transform=None, pre_transform=None):
         """
         Multi-task QM9 dataset for graph neural networks.
         
@@ -181,11 +200,13 @@ class QM9MultiTaskDataset(InMemoryDataset):
             root (str): Root directory where the dataset should be saved.
             target_columns (list): List of target column names for multitask learning.
             use_global_features (bool): Whether to include global molecular features.
+            use_3d_geo (bool): Whether to include 3D geometric edge features.
             transform: Optional transform to be applied to each data object.
             pre_transform: Optional pre-transform to be applied before saving.
         """
         self.target_columns = target_columns if isinstance(target_columns, list) else [target_columns]
         self.use_global_features = use_global_features
+        self.use_3d_geo = use_3d_geo
         self.csv_file = "data/qm9.csv"
         
         # Define available target columns for validation
@@ -221,7 +242,11 @@ class QM9MultiTaskDataset(InMemoryDataset):
     def processed_file_names(self):
         # Create a filename that represents all target columns
         targets_str = "_".join(self.target_columns)
-        suffix = "_with_global_features" if self.use_global_features else ""
+        suffix = ""
+        if self.use_global_features:
+            suffix += "_with_global_features"
+        if self.use_3d_geo:
+            suffix += "_with_3d_geo"
         return [f"data_{targets_str}{suffix}.pt"]
 
     def download(self):
@@ -250,6 +275,7 @@ class QM9MultiTaskDataset(InMemoryDataset):
         print(f"Processing QM9 multi-task dataset with targets: {self.target_columns}")
         print(f"Total molecules to process: {len(df)}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
+        print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
         
         for idx, row in df.iterrows():
             if idx % 10000 == 0:
@@ -274,7 +300,7 @@ class QM9MultiTaskDataset(InMemoryDataset):
                 continue
                 
             try:
-                data = smiles_to_data(smiles, labels=labels)
+                data = smiles_to_data(smiles, labels=labels, use_3d_geo=self.use_3d_geo, dataset_type='QM9')
                 if data is not None and hasattr(data, 'edge_index'):
                     # Extract global features if requested
                     if self.use_global_features:
@@ -343,7 +369,7 @@ class QM9MultiTaskDataset(InMemoryDataset):
             print(f"Number of global features: {self.num_global_features}")
 
 
-def create_qm9_multitask_dataset(target_columns, dataset_root="dataset", name=None, use_global_features=False):
+def create_qm9_multitask_dataset(target_columns, dataset_root="dataset", name=None, use_global_features=False, use_3d_geo=False):
     """
     Utility function to create a multitask QM9 dataset.
     
@@ -352,6 +378,7 @@ def create_qm9_multitask_dataset(target_columns, dataset_root="dataset", name=No
         dataset_root (str): Root directory for datasets.
         name (str): Name for the multitask dataset directory. If None, auto-generated.
         use_global_features (bool): Whether to include global molecular features.
+        use_3d_geo (bool): Whether to include 3D geometric edge features.
     
     Returns:
         QM9MultiTaskDataset: The created multitask dataset.
@@ -362,7 +389,7 @@ def create_qm9_multitask_dataset(target_columns, dataset_root="dataset", name=No
         target_hash = str(sum(ord(c) for c in target_str) % 10**8)
         name = f"QM9_multitask_{target_hash}"
     root = os.path.join(dataset_root, name)
-    return QM9MultiTaskDataset(root=root, target_columns=target_columns, use_global_features=use_global_features)
+    return QM9MultiTaskDataset(root=root, target_columns=target_columns, use_global_features=use_global_features, use_3d_geo=use_3d_geo)
 
 
 if __name__ == "__main__":

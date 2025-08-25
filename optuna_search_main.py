@@ -15,6 +15,7 @@ def get_args():
     parser.add_argument("--use_subset", action="store_true", help="Use a smaller subset of the dataset during tuning")
     parser.add_argument("--subset_ratio", type=float, default=0.3, help="Ratio of dataset to use for subset (default: 0.3)")
     parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+    parser.add_argument("--use_3d_geo", action="store_true", help="Use 3D geometric features for molecular graphs")
     parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
     parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (default: 20)")
     # Multi-task arguments
@@ -28,7 +29,7 @@ def get_args():
     parser.add_argument("--single_head", action="store_true", help="Use single head for multitask models")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None, single_head=False):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, use_3d_geo=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None, single_head=False):
     def objective(trial):
         try:
             import argparse
@@ -54,6 +55,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.use_subset = use_subset
             args.subset_ratio = subset_ratio
             args.use_global_features = use_global_features
+            args.use_3d_geo = use_3d_geo
             args.no_self_loops = no_self_loops
             # Multi-task arguments
             args.multitask = multitask
@@ -112,7 +114,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         param_file += f"_{target_column}"
     
     self_loops_suffix = "with_loops" if not no_self_loops else "no_loops"
-    param_file += f"_global_{use_global_features}_{self_loops_suffix}.json"
+    param_file += f"_global_{use_global_features}_3d_{use_3d_geo}_{self_loops_suffix}.json"
 
     # Save best hyperparameters
     with open(param_file, "w") as f:
@@ -120,6 +122,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         best_params["use_subset"] = use_subset
         best_params["subset_ratio"] = subset_ratio
         best_params["use_global_features"] = use_global_features
+        best_params["use_3d_geo"] = use_3d_geo
         best_params["no_self_loops"] = no_self_loops
         best_params["task_type"] = task_type
         best_params["dataset_name"] = dataset_name
@@ -222,6 +225,7 @@ if __name__ == "__main__":
         args.use_subset, 
         args.subset_ratio, 
         args.use_global_features,
+        args.use_3d_geo,
         args.no_self_loops,
         args.n_trials,
         args.multitask,

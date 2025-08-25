@@ -4,11 +4,15 @@ import pandas as pd
 import numpy as np
 import os
 import shutil
+from rdkit import RDLogger
 from smiles_to_graph import smiles_to_data
 from src.global_features import get_global_extractor, get_global_feature_dim
 
+# Suppress RDKit warnings for cleaner output
+RDLogger.DisableLog('rdApp.*')
+
 class ToxCastMultiTaskDataset(InMemoryDataset):
-    def __init__(self, root, target_columns, use_global_features=False, transform=None, pre_transform=None):
+    def __init__(self, root, target_columns, use_global_features=False, use_3d_geo=False, transform=None, pre_transform=None):
         """
         Multi-task ToxCast dataset for graph neural networks.
         
@@ -16,11 +20,13 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
             root (str): Root directory where the dataset should be saved.
             target_columns (list): List of target column names for multitask learning.
             use_global_features (bool): Whether to include global molecular features.
+            use_3d_geo (bool): Whether to include 3D geometric edge features.
             transform: Optional transform to be applied to each data object.
             pre_transform: Optional pre-transform to be applied before saving.
         """
         self.target_columns = target_columns if isinstance(target_columns, list) else [target_columns]
         self.use_global_features = use_global_features
+        self.use_3d_geo = use_3d_geo
         
         # Simple path like other datasets
         self.main_csv_path = "data/toxcast_data.csv"
@@ -45,7 +51,11 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
     def processed_file_names(self):
         # Create a filename that represents all target columns
         targets_str = "_".join(self.target_columns)
-        suffix = "_with_global_features" if self.use_global_features else ""
+        suffix = ""
+        if self.use_global_features:
+            suffix += "_with_global_features"
+        if self.use_3d_geo:
+            suffix += "_with_3d_geo"
         return [f"data_{targets_str}{suffix}.pt"]
 
     def download(self):
@@ -78,8 +88,12 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
         
         print(f"Processing ToxCast dataset with targets: {self.target_columns}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
+        print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
         
         for idx, row in df.iterrows():
+            if idx % 10000 == 0:
+                print(f"Processed {idx}/{len(df)} molecules...")
+                
             smiles = row["smiles"]
             
             # Extract labels for all target columns
@@ -99,7 +113,7 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
                 continue
                 
             try:
-                data = smiles_to_data(smiles, labels=labels)
+                data = smiles_to_data(smiles, labels=labels, use_3d_geo=self.use_3d_geo, dataset_type='TOXCAST')
                 if data is not None and hasattr(data, 'edge_index'):
                     # Extract global features if requested
                     if self.use_global_features:
@@ -158,10 +172,11 @@ class ToxCastMultiTaskDataset(InMemoryDataset):
 
 # Backward compatibility: keep the original single-task class
 class ToxCastGraphDataset(InMemoryDataset):
-    def __init__(self, root, target_column, use_global_features=False, transform=None, pre_transform=None):
+    def __init__(self, root, target_column, use_global_features=False, use_3d_geo=False, transform=None, pre_transform=None):
         self.target_column = target_column
         self.target_columns = [target_column]  # Ensure target_columns is initialized as a list
         self.use_global_features = use_global_features
+        self.use_3d_geo = use_3d_geo
         
         # Simple path like other datasets
         self.main_csv_path = "data/toxcast_data.csv"
@@ -184,7 +199,11 @@ class ToxCastGraphDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        suffix = "_with_global_features" if self.use_global_features else ""
+        suffix = ""
+        if self.use_global_features:
+            suffix += "_with_global_features"
+        if self.use_3d_geo:
+            suffix += "_with_3d_geo"
         return [f"data_{self.target_column}{suffix}.pt"]
 
     def download(self):
@@ -217,8 +236,12 @@ class ToxCastGraphDataset(InMemoryDataset):
         
         print(f"Processing ToxCast dataset with target: {self.target_column}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
+        print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
 
         for idx, row in df.iterrows():
+            if idx % 10000 == 0:
+                print(f"Processed {idx}/{len(df)} molecules...")
+                
             smiles = row["smiles"]
 
             # Extract labels for all target columns
@@ -238,7 +261,7 @@ class ToxCastGraphDataset(InMemoryDataset):
                 continue
 
             try:
-                data = smiles_to_data(smiles, labels=labels)
+                data = smiles_to_data(smiles, labels=labels, use_3d_geo=self.use_3d_geo, dataset_type='TOXCAST')
                 if data is not None and hasattr(data, 'edge_index'):
                     # Extract global features if requested
                     if self.use_global_features:
@@ -287,7 +310,7 @@ class ToxCastGraphDataset(InMemoryDataset):
         return self.use_global_features
 
 
-def create_multitask_dataset(target_columns, dataset_root="dataset", name="TOXCAST_multitask", use_global_features=False):
+def create_multitask_dataset(target_columns, dataset_root="dataset", name="TOXCAST_multitask", use_global_features=False, use_3d_geo=False):
     """
     Utility function to create a multitask ToxCast dataset.
     
@@ -296,12 +319,13 @@ def create_multitask_dataset(target_columns, dataset_root="dataset", name="TOXCA
         dataset_root (str): Root directory for datasets.
         name (str): Name for the multitask dataset directory.
         use_global_features (bool): Whether to include global molecular features.
+        use_3d_geo (bool): Whether to include 3D geometric edge features.
     
     Returns:
         ToxCastMultiTaskDataset: The created multitask dataset.
     """
     root = os.path.join(dataset_root, name)
-    return ToxCastMultiTaskDataset(root=root, target_columns=target_columns, use_global_features=use_global_features)
+    return ToxCastMultiTaskDataset(root=root, target_columns=target_columns, use_global_features=use_global_features, use_3d_geo=use_3d_geo)
 
 
 def get_available_assays(csv_path="data/toxcast_data.csv"):

@@ -8,6 +8,7 @@ N_TRIALS=20
 USE_SUBSET=false
 SUBSET_RATIO=0.3
 USE_GLOBAL_FEATURES=false
+USE_3D_GEO=false
 QUICK_MODE=false
 
 # Parse command line arguments
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
             USE_GLOBAL_FEATURES=true
             shift
             ;;
+        --use-3d-geo)
+            USE_3D_GEO=true
+            shift
+            ;;
         --quick-mode)
             QUICK_MODE=true
             shift
@@ -40,6 +45,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --use-subset             Use subset during hyperparameter search"
             echo "  --subset-ratio RATIO     Ratio of dataset to use for subset (default: 0.3)"
             echo "  --use-global-features    Use global molecular features"
+            echo "  --use-3d-geo             Use 3D geometric features for molecular graphs"
             echo "  --quick-mode             Use fewer targets for faster testing"
             echo "  --help                   Show this help message"
             echo ""
@@ -66,6 +72,7 @@ if [ "$USE_SUBSET" = true ]; then
     echo "Subset ratio: $SUBSET_RATIO"
 fi
 echo "Use global features: $USE_GLOBAL_FEATURES"
+echo "Use 3D geometry: $USE_3D_GEO"
 echo "Quick mode: $QUICK_MODE"
 echo ""
 
@@ -150,6 +157,10 @@ run_multitask_optuna_search() {
     
     if [ "$USE_GLOBAL_FEATURES" = true ]; then
         CMD="$CMD --use_global_features"
+    fi
+    
+    if [ "$USE_3D_GEO" = true ]; then
+        CMD="$CMD --use_3d_geo"
     fi
     
     echo "Executing: $CMD"

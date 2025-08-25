@@ -7,6 +7,7 @@ param(
     [switch]$UseSubset = $false,
     [double]$SubsetRatio = 0.3,
     [switch]$UseGlobalFeatures = $false,
+    [switch]$Use3DGeo = $false,
     [switch]$FirstTargetOnly = $false,
     [switch]$Help = $false
 )
@@ -18,13 +19,14 @@ if ($Help) {
     Write-Host "  -UseSubset             Use subset during hyperparameter search" -ForegroundColor White
     Write-Host "  -SubsetRatio RATIO     Ratio of dataset to use for subset (default: 0.3)" -ForegroundColor White
     Write-Host "  -UseGlobalFeatures     Use global molecular features" -ForegroundColor White
+    Write-Host "  -Use3DGeo              Use 3D geometric features for molecular graphs" -ForegroundColor White
     Write-Host "  -FirstTargetOnly       Test only the first target from each dataset (for quick testing)" -ForegroundColor White
     Write-Host "  -Help                  Show this help message" -ForegroundColor White
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
     Write-Host "  .\run_all_optuna_searches.ps1                              # Run with default settings" -ForegroundColor White
     Write-Host "  .\run_all_optuna_searches.ps1 -NTrials 50                  # Run with 50 trials per search" -ForegroundColor White
-    Write-Host "  .\run_all_optuna_searches.ps1 -UseGlobalFeatures           # Use global features" -ForegroundColor White
+    Write-Host "  .\run_all_optuna_searches.ps1 -Use3DGeo                # Use 3D geometric features" -ForegroundColor White
     Write-Host "  .\run_all_optuna_searches.ps1 -FirstTargetOnly             # Quick test mode" -ForegroundColor White
     Write-Host "  .\run_all_optuna_searches.ps1 -UseSubset -SubsetRatio 0.2  # Use 20% subset during search" -ForegroundColor White
     exit 0
@@ -40,6 +42,7 @@ if ($UseSubset) {
     Write-Host "Subset ratio: $SubsetRatio" -ForegroundColor White
 }
 Write-Host "Use global features: $UseGlobalFeatures" -ForegroundColor White
+Write-Host "Use 3D geometry: $Use3DGeo" -ForegroundColor White
 if ($FirstTargetOnly) {
     Write-Host "QUICK TEST MODE: Testing only the first target from each dataset" -ForegroundColor Yellow
 }
@@ -127,6 +130,10 @@ function Run-OptunaSearch {
     
     if ($UseGlobalFeatures) {
         $cmd += " --use_global_features"
+    }
+    
+    if ($Use3DGeo) {
+        $cmd += " --use_3d_geo"
     }
     
     Write-Host "Executing: $cmd" -ForegroundColor Cyan

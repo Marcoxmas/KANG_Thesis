@@ -73,6 +73,7 @@ def get_args():
 	parser.add_argument("--gamma", type=float, default=1.0, help="Gamma parameter for Focal Loss (default: 1.0)")
 	parser.add_argument("--return_history", action="store_true", help="Return training history for plotting")
 	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+	parser.add_argument("--use_3d_geo", action="store_true", help="Use 3D geometric features for molecular graphs")
 	parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
 	# Multi-task arguments
 	parser.add_argument("--multitask", action="store_true", help="Use multi-task learning for ToxCast dataset")
@@ -94,22 +95,31 @@ def graph_classification(args, return_history=False):
 		if args.use_global_features:
 			print("Warning: Global features not supported for TUDataset. Ignoring --use_global_features flag.")
 			args.use_global_features = False
+		if args.use_3d_geo:
+			print("Warning: 3D geometry not supported for TUDataset. Ignoring --use_3d_geo flag.")
+			args.use_3d_geo = False
 	elif args.dataset_name == "HIV":
 		dataset_path = f'./dataset/{args.dataset_name}'
-		dataset = HIVGraphDataset(root=dataset_path, use_global_features=args.use_global_features)
+		dataset = HIVGraphDataset(root=dataset_path, use_global_features=args.use_global_features, use_3d_geo=args.use_3d_geo)
 		if args.use_global_features:
 			print("Using global molecular features")
+		if args.use_3d_geo:
+			print("Using 3D geometric features")
 	elif args.dataset_name == "TOXCAST":
 		dataset_path = f'./dataset/TOXCAST_{args.target_column}'
-		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features)
+		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features, use_3d_geo=args.use_3d_geo)
 		if args.use_global_features:
 			print("Using global molecular features")
+		if args.use_3d_geo:
+			print("Using 3D geometric features")
 	else:
 		# Fallback for other datasets
 		dataset_path = f'./dataset/{args.dataset_name}'
-		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.dataset_name, use_global_features=args.use_global_features)
+		dataset = ToxCastGraphDataset(root=dataset_path, target_column=args.dataset_name, use_global_features=args.use_global_features, use_3d_geo=args.use_3d_geo)
 		if args.use_global_features:
 			print("Using global molecular features")
+		if args.use_3d_geo:
+			print("Using 3D geometric features")
 
 	# Apply subset for faster hyperparameter tuning if specified
 	if getattr(args, "use_subset", False):
@@ -398,12 +408,15 @@ def graph_classification_multitask(args, return_history=False):
 	dataset = ToxCastMultiTaskDataset(
 		root=dataset_path,
 		target_columns=target_assays,
-		use_global_features=args.use_global_features
+		use_global_features=args.use_global_features,
+		use_3d_geo=args.use_3d_geo
 	)
 	
 	print(f"Dataset loaded: {len(dataset)} molecules, {dataset.get_num_tasks()} tasks")
 	if args.use_global_features:
 		print("Using global molecular features")
+	if args.use_3d_geo:
+		print("Using 3D geometric features")
 	
 	# Apply subset for faster hyperparameter tuning if specified
 	if getattr(args, "use_subset", False):

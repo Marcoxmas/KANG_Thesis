@@ -1,6 +1,12 @@
 import torch
 from torch_geometric.data import Data
 from rdkit import Chem
+from rdkit import RDLogger
+import warnings
+from geometric_features_3d import get_3d_coordinates, create_3d_edge_features
+
+# Suppress RDKit warnings for cleaner output
+RDLogger.DisableLog('rdApp.*')
 
 
 def one_hot(value, choices):
@@ -50,6 +56,7 @@ def atom_features(atom):
 
     feat_tensor = torch.tensor(features, dtype=torch.float)
     return feat_tensor
+
 
 def bond_features(bond):
     """Returns a rich bond feature vector."""
@@ -103,14 +110,18 @@ def bond_to_edge_index(mol, smiles=None):
         edge_index[1] += [j, i]
         edge_attr += [bf, bf]
     if not edge_attr:
-        print(f"Skipped molecule with no bonds: {smiles}")
+        # Handle molecules with no bonds (single atoms)
+        if smiles:
+            print(f"Molecule with no bonds: {smiles}")
         return None, None
     edge_index = torch.tensor(edge_index, dtype=torch.long)
     edge_attr = torch.stack(edge_attr)
     return edge_index, edge_attr
 
 
-def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = False) -> Data:
+def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True, 
+                   use_3d_geo: bool = False, cutoff: float = 5.0, num_rbf: int = 32, 
+                   n_fourier: int = 4, dataset_type=None, mol_index=None) -> Data:
     """
     Converts a SMILES string to a PyTorch Geometric Data object.
     
@@ -118,6 +129,12 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = False) ->
         smiles (str): SMILES string.
         labels (float, list, torch.Tensor, or None): Single label, list of labels, or tensor for multitask learning.
         include_hydrogens (bool): Whether to add explicit hydrogens to the molecule.
+        use_3d_geo (bool): Whether to use 3D geometric edge features.
+        cutoff (float): Distance cutoff for 3D edges.
+        num_rbf (int): Number of RBF basis functions.
+        n_fourier (int): Number of Fourier components for angle features.
+        dataset_type (str): Dataset type (used for cache differentiation).
+        mol_index (int): Molecule index (used for cache differentiation, but no longer for SDF lookup).
         
     Returns:
         torch_geometric.data.Data: Graph object or None if parsing fails.
@@ -131,13 +148,78 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = False) ->
     # Node features
     x = torch.stack([atom_features(atom) for atom in mol.GetAtoms()])
 
-    # Edge index and edge attributes
-    edge_index, edge_attr = bond_to_edge_index(mol, smiles=smiles)
-    if edge_index is None or edge_attr is None or edge_index.numel() == 0 or x.numel() == 0:
-        print(f"Excluded invalid or empty graph for SMILES: {smiles}")
-        return None
+    if use_3d_geo:
+        # Get 3D coordinates using the new direct RDKit approach
+        pos = get_3d_coordinates(smiles, dataset_type=dataset_type, seed=42, 
+                               include_hydrogens=include_hydrogens, mol_index=mol_index)
+        
+        use_fake_3d = False
+        if pos is None:
+            print(f"Failed to obtain 3D coordinates for SMILES: {smiles}, using fake 3D mode")
+            # Create fake coordinates at origin to maintain consistent dimensions
+            pos = torch.zeros(mol.GetNumAtoms(), 3).numpy()
+            use_fake_3d = True
+        elif pos.shape[0] != sum(1 for atom in mol.GetAtoms()):
+            print(f"Coordinate count mismatch for {smiles}: got {pos.shape[0]} coords for {mol.GetNumAtoms()} atoms (including hydrogens: {include_hydrogens}), using fake 3D mode")
+            # Create fake coordinates at origin to maintain consistent dimensions
+            pos = torch.zeros(mol.GetNumAtoms(), 3).numpy()
+            use_fake_3d = True
 
-    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    if use_3d_geo:
+        # Get bond-based edge features for reference
+        bond_edge_index, bond_edge_attr = bond_to_edge_index(mol, smiles=smiles)
+        
+        if use_fake_3d:
+            # Don't waste computation - directly create features with zero RBF and angle parts
+            if bond_edge_index is None or bond_edge_attr is None:
+                # Handle molecules with no bonds
+                if mol.GetNumAtoms() == 1:
+                    edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+                    # Create features: zero RBF + zero bond + zero angle
+                    edge_attr = torch.zeros(1, num_rbf + 13 + 2 * n_fourier)
+                else:
+                    print(f"Excluded molecule with no bonds for SMILES: {smiles}")
+                    return None
+            else:
+                edge_index = bond_edge_index
+                n_edges = edge_index.shape[1]
+                # Create features: zero RBF + real bond + zero angle
+                zero_rbf = torch.zeros(n_edges, num_rbf)
+                zero_angle = torch.zeros(n_edges, 2 * n_fourier)
+                edge_attr = torch.cat([zero_rbf, bond_edge_attr, zero_angle], dim=1)
+        else:
+            # Use real 3D geometric edge features with full computation
+            edge_index, edge_attr = create_3d_edge_features(
+                pos, bond_edge_index, bond_edge_attr, cutoff, num_rbf, n_fourier
+            )
+        
+        if edge_index is None or edge_attr is None or edge_index.numel() == 0 or x.numel() == 0:
+            print(f"Excluded invalid or empty 3D graph for SMILES: {smiles}")
+            return None
+        
+        # Add 3D coordinates to data (real or fake)
+        data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, pos=torch.tensor(pos, dtype=torch.float32))
+    else:
+        # Use traditional 2D bond-based features
+        edge_index, edge_attr = bond_to_edge_index(mol, smiles=smiles)
+        
+        # Handle molecules with no bonds (e.g., single atoms)
+        if edge_index is None or edge_attr is None:
+            if mol.GetNumAtoms() == 1:
+                # Single atom: create self-loop
+                edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+                edge_attr = torch.zeros(1, 13)  # Default bond feature size
+                data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+            else:
+                print(f"Excluded molecule with no bonds for SMILES: {smiles}")
+                return None
+        elif edge_index.numel() == 0 or x.numel() == 0:
+            print(f"Excluded invalid or empty graph for SMILES: {smiles}")
+            return None
+        else:
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    
+    # Add labels
     if labels is not None:
         if isinstance(labels, (list, tuple)):
             data.y = torch.tensor(labels, dtype=torch.float)
@@ -149,14 +231,32 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = False) ->
 
     return data
 
+
 def print_graph_info(data: Data):
+    """Print comprehensive information about a graph data object."""
     print("Graph Information:")
     print(f" - Number of nodes: {data.num_nodes}")
-    print(f" - Node features:\n{data.x}")
-    print(f" - Edge index:\n{data.edge_index}")
+    print(f" - Node features shape: {data.x.shape}")
+    print(f" - Edge index shape: {data.edge_index.shape}")
     print(f" - Number of edges: {data.num_edges}")
-    print(f" - Edge attributes:\n{data.edge_attr}")
+    print(f" - Edge attributes shape: {data.edge_attr.shape}")
+    if hasattr(data, 'pos') and data.pos is not None:
+        print(f" - 3D coordinates shape: {data.pos.shape}")
+        print(f" - Using 3D geometric features")
+    else:
+        print(" - Using 2D bond-based features")
     if hasattr(data, 'y'):
         print(f" - Label: {data.y}")
     else:
         print(" - No label assigned.")
+    print(f" - Edge feature breakdown:")
+    if hasattr(data, 'pos') and data.pos is not None:
+        # 3D case: RBF + bond + angle features
+        edge_dim = data.edge_attr.shape[1]
+        print(f"   - Total edge features: {edge_dim}")
+        print(f"   - RBF features: first 32 dimensions (default)")
+        print(f"   - Bond features: next 13 dimensions") 
+        print(f"   - Angle features: last 8 dimensions (2*n_fourier, default)")
+    else:
+        # 2D case: bond features only
+        print(f"   - Bond features: {data.edge_attr.shape[1]} dimensions")

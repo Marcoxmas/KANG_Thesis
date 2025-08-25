@@ -9,3 +9,4 @@ src/old/*
 src/__pycache__/*
 .DS_Store
 .venv
+data/3d_coords_cache/

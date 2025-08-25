@@ -3,13 +3,18 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data
 import os
 import shutil
+from rdkit import RDLogger
 from smiles_to_graph import smiles_to_data
 from src.global_features import get_global_extractor, get_global_feature_dim
 
+# Suppress RDKit warnings for cleaner output
+RDLogger.DisableLog('rdApp.*')
+
 class HIVGraphDataset(InMemoryDataset):
-    def __init__(self, root, use_global_features=False, transform=None, pre_transform=None):
+    def __init__(self, root, use_global_features=False, use_3d_geo=False, transform=None, pre_transform=None):
         self.csv_file = "data/HIV.csv"
         self.use_global_features = use_global_features
+        self.use_3d_geo = use_3d_geo
         
         # Initialize global feature extractor if needed
         if self.use_global_features:
@@ -41,9 +46,14 @@ class HIVGraphDataset(InMemoryDataset):
         invalid_count = 0
         global_features_count = 0
         
-        print(f"Processing HIV dataset with {'global features enabled' if self.use_global_features else 'global features disabled'}")
+        print(f"Processing HIV dataset")
+        print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
+        print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
         
         for idx, row in df.iterrows():
+            if idx % 10000 == 0:
+                print(f"Processed {idx}/{len(df)} molecules...")
+                
             smiles = row['smiles']
             label = row['HIV_active']  # Use HIV_active column as the label
             
@@ -53,7 +63,7 @@ class HIVGraphDataset(InMemoryDataset):
                 continue
                 
             try:
-                data = smiles_to_data(smiles, labels=int(label))
+                data = smiles_to_data(smiles, labels=int(label), use_3d_geo=self.use_3d_geo, dataset_type='HIV')
                 if data is not None and hasattr(data, 'edge_index'):
                     # Extract global features if requested
                     if self.use_global_features:
@@ -117,7 +127,11 @@ class HIVGraphDataset(InMemoryDataset):
         """
         Returns the list of processed file names that must be present in the processed directory.
         """
-        suffix = "_with_global_features" if self.use_global_features else ""
+        suffix = ""
+        if self.use_global_features:
+            suffix += "_with_global_features"
+        if self.use_3d_geo:
+            suffix += "_with_3d_geo"
         return [f'data{suffix}.pt']
 
     @property

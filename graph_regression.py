@@ -46,6 +46,7 @@ def get_args():
 	parser.add_argument("--grid_max", type=int, default=3, help="")
 	parser.add_argument("--log_freq", type=int, default=10, help="Logging frequency (epochs)")
 	parser.add_argument("--use_global_features", action="store_true", help="Use global molecular features")
+	parser.add_argument("--use_3d_geo", action="store_true", help="Use 3D geometric features for molecular graphs")
 	parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
 	# Multi-task arguments
 	parser.add_argument("--multitask", action="store_true", help="Use multi-task learning")
@@ -62,18 +63,22 @@ def graph_regression(args, return_history=False):
 	
 	if args.dataset_name == "QM9":
 		dataset_path = f'./dataset/{args.dataset_name}_{args.target_column}'
-		dataset = QM9GraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features)
+		dataset = QM9GraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features, use_3d_geo=args.use_3d_geo)
 		print(f"QM9 dataset loaded with target column: {args.target_column}")
 		if args.use_global_features:
 			print("Using global molecular features")
+		if args.use_3d_geo:
+			print("Using 3D geometric features")
 		dataset.print_dataset_info()	
 
 	elif args.dataset_name == "QM8":
 		dataset_path = f'./dataset/{args.dataset_name}_{args.target_column}'
-		dataset = QM8GraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features)
+		dataset = QM8GraphDataset(root=dataset_path, target_column=args.target_column, use_global_features=args.use_global_features, use_3d_geo=args.use_3d_geo)
 		print(f"QM8 dataset loaded with target column: {args.target_column}")
 		if args.use_global_features:
 			print("Using global molecular features")
+		if args.use_3d_geo:
+			print("Using 3D geometric features")
 		dataset.print_dataset_info()
 
 	# Apply subset for faster hyperparameter tuning if specified
@@ -264,7 +269,8 @@ def graph_regression_multitask(args, return_history=False):
 		dataset = QM9MultiTaskDataset(
 			root=dataset_path,
 			target_columns=target_columns,
-			use_global_features=args.use_global_features
+			use_global_features=args.use_global_features,
+			use_3d_geo=args.use_3d_geo
 		)
 	elif args.dataset_name == "QM8":
 		# Create a short hash for QM8 targets
@@ -274,7 +280,8 @@ def graph_regression_multitask(args, return_history=False):
 		dataset = QM8MultiTaskDataset(
 			root=dataset_path,
 			target_columns=target_columns,
-			use_global_features=args.use_global_features
+			use_global_features=args.use_global_features,
+			use_3d_geo=args.use_3d_geo
 		)
 	else:
 		raise ValueError(f"Unsupported dataset for multi-task: {args.dataset_name}")
@@ -282,6 +289,8 @@ def graph_regression_multitask(args, return_history=False):
 	print(f"Dataset loaded: {len(dataset)} molecules, {dataset.get_num_tasks()} tasks")
 	if args.use_global_features:
 		print("Using global molecular features")
+	if args.use_3d_geo:
+		print("Using 3D geometric features")
 	
 	# Apply subset for faster hyperparameter tuning if specified
 	if getattr(args, "use_subset", False):

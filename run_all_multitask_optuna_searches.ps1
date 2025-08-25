@@ -7,6 +7,7 @@ param(
     [switch]$UseSubset = $false,
     [double]$SubsetRatio = 0.3,
     [switch]$UseGlobalFeatures = $false,
+    [switch]$Use3DGeo = $false,
     [switch]$NoSelfLoops = $false,
     [switch]$QuickMode = $false,
     [switch]$SingleHead = $false,
@@ -20,13 +21,14 @@ if ($Help) {
     Write-Host "  -UseSubset             Use subset during hyperparameter search" -ForegroundColor White
     Write-Host "  -SubsetRatio RATIO     Ratio of dataset to use for subset (default: 0.3)" -ForegroundColor White
     Write-Host "  -UseGlobalFeatures     Use global molecular features" -ForegroundColor White
+    Write-Host "  -Use3DGeo              Use 3D geometric features for molecular graphs" -ForegroundColor White
     Write-Host "  -QuickMode             Use fewer targets for faster testing" -ForegroundColor White
     Write-Host "  -Help                  Show this help message" -ForegroundColor White
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
     Write-Host "  .\run_all_multitask_optuna_searches.ps1                    # Run with default settings" -ForegroundColor White
     Write-Host "  .\run_all_multitask_optuna_searches.ps1 -NTrials 50       # Run with 50 trials per search" -ForegroundColor White
-    Write-Host "  .\run_all_multitask_optuna_searches.ps1 -QuickMode        # Quick test mode" -ForegroundColor White
+    Write-Host "  .\run_all_multitask_optuna_searches.ps1 -Use3DGeo        # Use 3D geometric features" -ForegroundColor White
     exit 0
 }
 
@@ -40,6 +42,7 @@ if ($UseSubset) {
     Write-Host "Subset ratio: $SubsetRatio" -ForegroundColor White
 }
 Write-Host "Use global features: $UseGlobalFeatures" -ForegroundColor White
+Write-Host "Use 3D geometry: $Use3DGeo" -ForegroundColor White
 Write-Host "Quick mode: $QuickMode" -ForegroundColor White
 Write-Host ""
 
@@ -122,6 +125,10 @@ function Run-MultiTaskOptunaSearch {
     
     if ($UseGlobalFeatures) {
         $cmd += " --use_global_features"
+    }
+
+    if ($Use3DGeo) {
+        $cmd += " --use_3d_geo"
     }
 
     if ($NoSelfLoops) {

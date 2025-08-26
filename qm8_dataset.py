@@ -3,6 +3,8 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data
 import os
 import shutil
+import time
+from datetime import datetime
 from rdkit import RDLogger
 from smiles_to_graph import smiles_to_data
 from src.global_features import get_global_extractor, get_global_feature_dim
@@ -55,15 +57,24 @@ class QM8GraphDataset(InMemoryDataset):
         valid_count = 0
         invalid_count = 0
         global_features_count = 0
+        start_time = time.time()
         
         print(f"Processing QM8 dataset with target column: {self.target_column}")
         print(f"Total molecules to process: {len(df)}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
         print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
+        print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         for idx, row in df.iterrows():
             if idx % 1000 == 0:
-                print(f"Processed {idx}/{len(df)} molecules...")
+                elapsed_time = time.time() - start_time
+                current_time = datetime.now().strftime('%H:%M:%S')
+                if idx == 0:
+                    print(f"[{current_time}] Processing molecule {idx}/{len(df)} (0.00 mol/s)")
+                else:
+                    mol_per_sec = idx / elapsed_time
+                    print(f"[{current_time}] Processed {idx}/{len(df)} molecules... "
+                          f"(Elapsed: {elapsed_time:.1f}s, Speed: {mol_per_sec:.2f} mol/s)")
                 
             smiles = row['smiles']
             target_value = row[self.target_column]
@@ -103,6 +114,12 @@ class QM8GraphDataset(InMemoryDataset):
         print(f"Processed {valid_count} valid molecules, {invalid_count} invalid/missing")
         if self.use_global_features:
             print(f"Successfully extracted global features for {global_features_count} molecules")
+        
+        total_time = time.time() - start_time
+        end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"Finished at: {end_time}")
+        print(f"Total processing time: {total_time:.2f} seconds")
+        print(f"Average processing speed: {len(df)/total_time:.2f} molecules/second")
         
         if not data_list:
             raise ValueError("No valid data found! Check your data.")
@@ -267,15 +284,24 @@ class QM8MultiTaskDataset(InMemoryDataset):
         valid_count = 0
         invalid_count = 0
         global_features_count = 0
+        start_time = time.time()
         
         print(f"Processing QM8 multi-task dataset with targets: {self.target_columns}")
         print(f"Total molecules to process: {len(df)}")
         print(f"Global features: {'enabled' if self.use_global_features else 'disabled'}")
         print(f"3D geometric features: {'enabled' if self.use_3d_geo else 'disabled'}")
+        print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         for idx, row in df.iterrows():
-            if idx % 10000 == 0:
-                print(f"Processed {idx}/{len(df)} molecules...")
+            if idx % 1000 == 0:
+                elapsed_time = time.time() - start_time
+                current_time = datetime.now().strftime('%H:%M:%S')
+                if idx == 0:
+                    print(f"[{current_time}] Processing molecule {idx}/{len(df)} (0.00 mol/s)")
+                else:
+                    mol_per_sec = idx / elapsed_time
+                    print(f"[{current_time}] Processed {idx}/{len(df)} molecules... "
+                          f"(Elapsed: {elapsed_time:.1f}s, Speed: {mol_per_sec:.2f} mol/s)")
                 
             smiles = row['smiles']
             
@@ -325,6 +351,12 @@ class QM8MultiTaskDataset(InMemoryDataset):
         print(f"Number of tasks: {len(self.target_columns)}")
         if self.use_global_features:
             print(f"Successfully extracted global features for {global_features_count} molecules")
+        
+        total_time = time.time() - start_time
+        end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"Finished at: {end_time}")
+        print(f"Total processing time: {total_time:.2f} seconds")
+        print(f"Average processing speed: {len(df)/total_time:.2f} molecules/second")
         
         if not data_list:
             raise ValueError("No valid data found! Check your target columns and data.")

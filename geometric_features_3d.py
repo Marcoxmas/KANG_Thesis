@@ -9,6 +9,7 @@ The edge attributes are constructed as:
 edge_attr[j→i] = [ RBF(d_ji)  ||  bond_bits_or_zero  ||  angle_summary(j,i) ]
 """
 
+import random
 import torch
 import torch.nn as nn
 from rdkit import Chem
@@ -19,6 +20,7 @@ from urllib.parse import quote
 import pickle
 import hashlib
 import pandas as pd
+from torch_cluster import radius_graph
 
 # Suppress RDKit warnings for cleaner output
 RDLogger.DisableLog('rdApp.*')
@@ -98,8 +100,9 @@ def load_from_cache(smiles, include_hydrogens=True, seed=42):
         cache_dir = _get_cache_dir()
         cache_key = get_cache_key(smiles, include_hydrogens, seed)
         cache_file = cache_dir / f"{cache_key}.pkl"
-        
+        # print(f"Looking for cache file: {cache_file}")
         if cache_file.exists():
+            # print(f"Cache file found: {cache_file}")
             with open(cache_file, 'rb') as f:
                 cached_data = pickle.load(f)
                 # Handle both old format (dict) and new format (direct numpy array)
@@ -107,6 +110,7 @@ def load_from_cache(smiles, include_hydrogens=True, seed=42):
                     return cached_data['coordinates']
                 else:
                     return cached_data  # Direct numpy array
+        # print(f"Cache file not found: {cache_file}")
     except Exception as e:
         print(f"Error loading from cache: {e}")
     
@@ -193,7 +197,7 @@ def compute_distances(pos):
     distances = np.sqrt(np.sum(diff**2, axis=2))
     return distances
 
-
+# Legacy function
 def compute_angle_features(pos, edge_index, cutoff, n_fourier=4):
     """
     Compute angle summary features for directed edges.
@@ -284,7 +288,132 @@ def compute_angle_features(pos, edge_index, cutoff, n_fourier=4):
     return angle_features
 
 
-def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=5.0, num_rbf=32, n_fourier=4):
+def compute_angle_features_from_graph(pos_t: torch.Tensor,
+                                      edge_index: torch.Tensor,
+                                      n_fourier: int = 2,
+                                      max_k_for_angles: int = 8,
+                                      debug_timing: bool = False):
+    """
+    Vectorized, center-batched angle features.
+    For each center j, compute u_kj once for all its in-neighbors k,
+    then reuse it for all outgoing edges j->i in one matmul.
+    """
+    import time
+    t0 = time.perf_counter()
+
+    E = edge_index.shape[1]
+    feat_dim = 2 * n_fourier
+    out = torch.zeros(E, feat_dim, dtype=torch.float32)
+    if n_fourier <= 0 or pos_t.size(0) < 3 or E == 0:
+        if debug_timing:
+            print(f"[ANG-BATCH] trivial_return={time.perf_counter()-t0:.4f}s")
+        return out
+
+    src, dst = edge_index[0], edge_index[1]  # edge j->i: src=j, dst=i
+    N = pos_t.size(0)
+
+    # Map center j -> list of edges e (edges j->i)
+    j_to_edges = [[] for _ in range(N)]
+    for e in range(E):
+        j = src[e].item()
+        j_to_edges[j].append(e)
+
+    # In-neighbors of each j (k->j)
+    in_neighbors = [[] for _ in range(N)]
+    for e in range(E):
+        k = src[e].item()
+        j = dst[e].item()
+        in_neighbors[j].append(k)
+
+    t1 = time.perf_counter()
+
+    # Precompute u_ji per edge once
+    u_ji = pos_t[dst] - pos_t[src]  # [E, 3]
+    norms_ji = torch.linalg.norm(u_ji, dim=1)
+    good_edge = norms_ji > 1e-7
+    u_ji[good_edge] = u_ji[good_edge] / norms_ji[good_edge].unsqueeze(1)
+
+    t2 = time.perf_counter()
+
+    total_pairs = 0
+    # Process per center j
+    for j in range(N):
+        edges_e = j_to_edges[j]
+        if not edges_e:
+            continue
+        neigh = in_neighbors[j]
+        if not neigh:
+            continue
+
+        neigh_t = torch.tensor(neigh, dtype=torch.long)
+        # u_kj for all neighbors once
+        kj = pos_t[j].unsqueeze(0) - pos_t[neigh_t]     # [K, 3]
+        kj_norm = torch.linalg.norm(kj, dim=1)
+        valid_k = kj_norm > 1e-7
+        if not torch.any(valid_k):
+            continue
+        kj = kj[valid_k] / kj_norm[valid_k].unsqueeze(1)  # [Kvalid, 3]
+        valid_neigh = neigh_t[valid_k]                    # [Kvalid]
+
+        # Optional neighbor cap for speed
+        if kj.size(0) > max_k_for_angles:
+            sel = torch.randperm(kj.size(0))[:max_k_for_angles]
+            kj = kj[sel]
+            valid_neigh = valid_neigh[sel]
+
+        e_tensor = torch.tensor(edges_e, dtype=torch.long)
+        u_ji_block = u_ji[e_tensor]  # [Ej, 3]
+        mask_good = good_edge[e_tensor]
+        if not torch.any(mask_good):
+            continue
+
+        # Dot products for all (k, edges) in one shot
+        # kj: [K,3], u_ji_block.T: [3,Ej] -> dots: [K,Ej]
+        dots = kj @ u_ji_block.T
+        dots = torch.clamp(dots, -1.0 + 1e-7, 1.0 - 1e-7)
+
+        # Mask k==i for each column
+        i_idx = dst[e_tensor]                                # [Ej]
+        eq = (valid_neigh.unsqueeze(1) == i_idx.unsqueeze(0))  # [K,Ej]
+        dots = dots.masked_fill(eq, float('nan'))
+
+        angles = torch.arccos(dots)  # [K,Ej] with NaNs masked
+
+        # Build [sin(n*angles), cos(n*angles)] without Python loops over k
+        # angles: [K,Ej], ns: [n], -> angles[...,None]*ns: [K,Ej,n]
+        ns = torch.arange(1, n_fourier + 1, device=angles.device, dtype=angles.dtype)
+        na = angles.unsqueeze(-1) * ns  # [K,Ej,n]
+        s = torch.sin(na)               # [K,Ej,n]
+        c = torch.cos(na)               # [K,Ej,n]
+
+        # nanmean over K (dim=0)
+        valid_s = ~torch.isnan(s)
+        valid_c = ~torch.isnan(c)
+        sum_s = torch.where(valid_s, s, 0.0).sum(dim=0)          # [Ej,n]
+        sum_c = torch.where(valid_c, c, 0.0).sum(dim=0)          # [Ej,n]
+        cnt_s = valid_s.sum(dim=0).clamp_min(1)                  # [Ej,n]
+        cnt_c = valid_c.sum(dim=0).clamp_min(1)                  # [Ej,n]
+        mean_s = sum_s / cnt_s
+        mean_c = sum_c / cnt_c
+
+        # Write results back to out for these edges
+        # Interleave s,c along last dim: [Ej, 2n]
+        inter = torch.empty((mean_s.size(0), 2 * n_fourier), dtype=mean_s.dtype)
+        inter[:, 0::2] = mean_s
+        inter[:, 1::2] = mean_c
+        out[e_tensor] = inter
+
+        total_pairs += torch.isfinite(angles).sum().item()
+
+    t3 = time.perf_counter()
+    if debug_timing:
+        print(f"[ANG-BATCH] build_in={t1-t0:.4f}s pre_uji={t2-t1:.4f}s "
+              f"by_center={t3-t2:.4f}s pairs={total_pairs}")
+    return out
+
+
+
+def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, num_rbf=16, n_fourier=2, max_k_for_angles=4):
     """
     Create 3D geometric edge features combining distance RBF, bond features, and angle summary.
     
@@ -313,7 +442,32 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=5.0, nu
         
         return edge_index, edge_attr
     
-    distances = compute_distances(pos)
+    # radius_graph expects a torch.float tensor [N, 3]
+    pos_t = torch.as_tensor(pos, dtype=torch.float32)
+    t0 = time.perf_counter()
+    edge_index = radius_graph(
+        pos_t, r=cutoff, loop=False, max_num_neighbors=32
+    )
+    t1 = time.perf_counter()
+    # edge_index is shape [2, E], directed (both i->j and j->i present)
+
+    if edge_index.numel() == 0:
+        # Fall back to bond-only graph (keep old behavior)
+        if bond_edge_index is not None and bond_edge_attr is not None:
+            n_edges = bond_edge_index.shape[1]
+            padding_size = num_rbf + 2 * n_fourier
+            padding = torch.zeros(n_edges, padding_size)
+            new_edge_attr = torch.cat([padding, bond_edge_attr], dim=1)
+            return bond_edge_index, new_edge_attr
+        else:
+            return None, None
+        
+    # --- Distances for each edge (vectorized) ---
+    src = edge_index[0]  # j
+    dst = edge_index[1]  # i
+    vec = pos_t[dst] - pos_t[src]           # [E, 3]
+    edge_distances = torch.linalg.norm(vec, dim=1)  # [E]
+    t2 = time.perf_counter()
     
     # Create RBF
     rbf = RadialBasisFunction(
@@ -324,59 +478,50 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=5.0, nu
         linspace=True,
         trainable_grid=False
     )
-    
-    # Find all edges within cutoff
-    edge_list = []
-    edge_distances = []
-    
-    for i in range(n_atoms):
-        for j in range(n_atoms):
-            if i != j and distances[i, j] <= cutoff:
-                edge_list.append([i, j])
-                edge_distances.append(distances[i, j])
-    
-    if len(edge_list) == 0:
-        # No edges within cutoff, return original bond-based edges with padding
-        if bond_edge_index is not None and bond_edge_attr is not None:
-            n_edges = bond_edge_index.shape[1]
-            padding_size = num_rbf + 2 * n_fourier
-            padding = torch.zeros(n_edges, padding_size)
-            new_edge_attr = torch.cat([padding, bond_edge_attr], dim=1)
-            return bond_edge_index, new_edge_attr
-        else:
-            return None, None
-    
-    new_edge_index = torch.tensor(edge_list, dtype=torch.long).t()
-    edge_distances = torch.tensor(edge_distances, dtype=torch.float32)
-    
-    # Compute RBF features
+
     with torch.no_grad():
-        rbf_features = rbf(edge_distances)
+        rbf_features = rbf(edge_distances)  # [E, num_rbf]
+    t3 = time.perf_counter()
     
-    # Create bond feature mapping
+    # --- Bond features aligned to edges ---
+    # Build dict for quick lookup of real bond features; zeros otherwise.
+    bond_dim = 13
+    bond_features_all = torch.zeros(edge_index.shape[1], bond_dim)
+
     bond_features_dict = {}
-    bond_dim = 13  # Default bond feature size
-    
     if bond_edge_index is not None and bond_edge_attr is not None:
         bond_dim = bond_edge_attr.shape[1]
+        bond_features_all = torch.zeros(edge_index.shape[1], bond_dim)
         for k in range(bond_edge_index.shape[1]):
-            i, j = bond_edge_index[0, k].item(), bond_edge_index[1, k].item()
-            bond_features_dict[(i, j)] = bond_edge_attr[k]
-    
-    # Create bond features for all edges (zeros if no bond)
-    bond_features_all = torch.zeros(len(edge_list), bond_dim)
-    
-    for idx, (i, j) in enumerate(edge_list):
-        if (i, j) in bond_features_dict:
-            bond_features_all[idx] = bond_features_dict[(i, j)]
-    
-    # Compute angle features
-    angle_features = compute_angle_features(pos, new_edge_index, cutoff, n_fourier)
-    
-    # Combine all features: [RBF || bond_features || angle_features]
+            i_k = bond_edge_index[0, k].item()
+            j_k = bond_edge_index[1, k].item()
+            bond_features_dict[(i_k, j_k)] = bond_edge_attr[k]
+
+        # Fill for each new edge
+        # (This loop is cheap: E over dict lookups, no N^2.)
+        for e in range(edge_index.shape[1]):
+            j = src[e].item()
+            i = dst[e].item()
+            if (j, i) in bond_features_dict:
+                bond_features_all[e] = bond_features_dict[(j, i)]
+    t4 = time.perf_counter()
+
+    # --- Angle features using the same radius graph ---
+    angle_features = compute_angle_features_from_graph(
+        pos_t, edge_index, n_fourier=n_fourier, max_k_for_angles=max_k_for_angles
+    )  # [E, 2*n_fourier]
+    t5 = time.perf_counter()
+
+    if False:
+        print(f"[DEBUG] radius_graph={t1-t0:.4f}s "
+                f"dist={t2-t1:.4f}s RBF={t3-t2:.4f}s "
+                f"bond_map={t4-t3:.4f}s angles={t5-t4:.4f}s "
+                f"E={edge_index.shape[1]}")
+
+    # --- Concatenate blocks ---
     new_edge_attr = torch.cat([rbf_features, bond_features_all, angle_features], dim=1)
     
-    return new_edge_index, new_edge_attr
+    return edge_index, new_edge_attr
 
 
 def get_3d_coordinates_from_pubchem(smiles, timeout=10, max_retries=2, include_hydrogens=True):
@@ -435,6 +580,9 @@ def get_3d_coordinates_from_pubchem(smiles, timeout=10, max_retries=2, include_h
                                     return pos
                                 else:
                                     print(f"Invalid SDF content from PubChem for CID {cid}")
+                            elif sdf_response.status_code == 404 or sdf_response.status_code == 400:
+                                print(f"3D SDF not found in PubChem for CID {cid}")
+                                break
                             else:
                                 print(f"Failed to get SDF from PubChem (status: {sdf_response.status_code})")
                 elif response.status_code == 404 or response.status_code == 400:
@@ -450,7 +598,7 @@ def get_3d_coordinates_from_pubchem(smiles, timeout=10, max_retries=2, include_h
             
             # Wait before retry (exponential backoff)
             if attempt < max_retries - 1:
-                wait_time = 4 ** attempt
+                wait_time = 2 ** attempt
                 print(f"Waiting {wait_time}s before retry...")
                 time.sleep(wait_time)
         # time.sleep(0.3)            

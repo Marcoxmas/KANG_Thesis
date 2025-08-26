@@ -18,6 +18,13 @@ torchvision==0.16.0+cu121
 torch-geometric==2.4.0
 torchprofile==0.0.4
 
+--find-links https://data.pyg.org/whl/torch-2.1.0+cu121.html
+
+torch_scatter==2.1.2+pt21cu121
+torch_sparse==0.6.18+pt21cu121
+torch_cluster==1.6.3+pt21cu121
+torch_spline_conv==1.2.2+pt21cu121
+
 # Scientific computing
 numpy<2.0
 scipy==1.15.1
@@ -42,7 +49,7 @@ seaborn==0.12.2
 PyYAML==6.0.2
 tqdm==4.67.1
 rich==13.9.4
-requests==2.31.0
+requests>=2.31.0
 
 # Experiment tracking
 wandb==0.19.6

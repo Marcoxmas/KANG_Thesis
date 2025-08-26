@@ -120,8 +120,8 @@ def bond_to_edge_index(mol, smiles=None):
 
 
 def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True, 
-                   use_3d_geo: bool = False, cutoff: float = 5.0, num_rbf: int = 32, 
-                   n_fourier: int = 4, dataset_type=None, mol_index=None) -> Data:
+                   use_3d_geo: bool = False, cutoff: float = 4.0, num_rbf: int = 16, 
+                   n_fourier: int = 2, dataset_type=None, mol_index=None, max_k_for_angles: int = 4) -> Data:
     """
     Converts a SMILES string to a PyTorch Geometric Data object.
     
@@ -190,7 +190,7 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True,
         else:
             # Use real 3D geometric edge features with full computation
             edge_index, edge_attr = create_3d_edge_features(
-                pos, bond_edge_index, bond_edge_attr, cutoff, num_rbf, n_fourier
+                pos, bond_edge_index, bond_edge_attr, cutoff, num_rbf, n_fourier, max_k_for_angles
             )
         
         if edge_index is None or edge_attr is None or edge_index.numel() == 0 or x.numel() == 0:
@@ -253,10 +253,11 @@ def print_graph_info(data: Data):
     if hasattr(data, 'pos') and data.pos is not None:
         # 3D case: RBF + bond + angle features
         edge_dim = data.edge_attr.shape[1]
+        bond_dim = 13
         print(f"   - Total edge features: {edge_dim}")
-        print(f"   - RBF features: first 32 dimensions (default)")
-        print(f"   - Bond features: next 13 dimensions") 
-        print(f"   - Angle features: last 8 dimensions (2*n_fourier, default)")
+        print(f"   - RBF features: first {data.num_rbf} dimensions (default)")
+        print(f"   - Bond features: next {bond_dim} dimensions")
+        print(f"   - Angle features: last {2*data.n_fourier} dimensions (2*n_fourier, default)")
     else:
         # 2D case: bond features only
         print(f"   - Bond features: {data.edge_attr.shape[1]} dimensions")

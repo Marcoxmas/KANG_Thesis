@@ -53,6 +53,55 @@ class FocalLoss(nn.Module):
 		else:
 			return focal_loss
 
+def generate_model_filename(args, is_multitask=False):
+	"""Generate a unique model filename based on training configuration"""
+	components = []
+	
+	# Base model type
+	if is_multitask:
+		components.append("gkan_multitask")
+	else:
+		components.append("gkan")
+	
+	# Dataset name
+	components.append(args.dataset_name.lower())
+	
+	# Key hyperparameters
+	components.append(f"hc{args.hidden_channels}")
+	components.append(f"l{args.layers}")
+	components.append(f"g{args.num_grids}")
+	components.append(f"lr{args.lr}")
+	components.append(f"wd{args.wd}")
+	components.append(f"d{args.dropout}")
+	
+	# Feature flags
+	if args.use_global_features:
+		components.append("gf")
+	if args.use_3d_geo:
+		components.append("3d")
+	if getattr(args, 'no_self_loops', False):
+		components.append("nosl")
+	
+	# Loss/evaluation specific
+	if args.use_weighted_loss:
+		components.append("wl")
+	if args.use_roc_auc:
+		components.append("auc")
+		if hasattr(args, 'gamma') and args.gamma != 1.0:
+			components.append(f"gamma{args.gamma}")
+	
+	# Multi-task specific options
+	if is_multitask:
+		if getattr(args, 'single_head', False):
+			components.append("sh")
+		if hasattr(args, 'multitask_assays') and args.multitask_assays:
+			# Add hash of assays for uniqueness
+			assay_str = "_".join(sorted(args.multitask_assays))
+			assay_hash = str(abs(hash(assay_str)) % 10000)
+			components.append(f"a{assay_hash}")
+	
+	return "_".join(components) + ".pth"
+
 def get_args():
 	parser = argparse.ArgumentParser(description="GKAN - Graph Classification Example")
 	parser.add_argument("--dataset_name", type=str, default="MUTAG", help="Dataset name")
@@ -185,7 +234,7 @@ def graph_classification(args, return_history=False):
 	best_val_acc = 0
 	early_stop_counter = 0
 	best_epoch = -1
-	best_model_path = f"./experiments/graph_classification/gkan.pth"
+	best_model_path = f"./experiments/graph_classification/{generate_model_filename(args, is_multitask=False)}"
 
 	# Initialize history tracking if requested
 	train_losses = [] if return_history else None
@@ -501,7 +550,7 @@ def graph_classification_multitask(args, return_history=False):
 	best_val_metric = 0
 	early_stop_counter = 0
 	best_epoch = -1
-	best_model_path = f"./experiments/graph_classification/gkan_multitask.pth"
+	best_model_path = f"./experiments/graph_classification/{generate_model_filename(args, is_multitask=True)}"
 
 	# Initialize history tracking if requested
 	train_losses = [] if return_history else None

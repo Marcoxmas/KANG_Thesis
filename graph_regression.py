@@ -1,4 +1,5 @@
 import argparse
+import json
 from email import parser
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
@@ -28,6 +29,50 @@ seed = 42
 set_seed(seed)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def generate_model_filename(args, is_multitask=False):
+	"""Generate a unique model filename based on training configuration"""
+	components = []
+	
+	# Base model type
+	if is_multitask:
+		components.append("gkan_multitask")
+	else:
+		components.append("gkan")
+	
+	# Dataset name and target column for single-task
+	if not is_multitask and hasattr(args, 'target_column'):
+		components.append(f"{args.dataset_name.lower()}_{args.target_column}")
+	else:
+		components.append(args.dataset_name.lower())
+	
+	# Key hyperparameters
+	components.append(f"hc{args.hidden_channels}")
+	components.append(f"l{args.layers}")
+	components.append(f"g{args.num_grids}")
+	components.append(f"lr{args.lr}")
+	components.append(f"wd{args.wd}")
+	components.append(f"d{args.dropout}")
+	
+	# Feature flags
+	if args.use_global_features:
+		components.append("gf")
+	if args.use_3d_geo:
+		components.append("3d")
+	if getattr(args, 'no_self_loops', False):
+		components.append("nosl")
+	
+	# Multi-task specific options
+	if is_multitask:
+		if getattr(args, 'single_head', False):
+			components.append("sh")
+		if hasattr(args, 'multitask_targets') and args.multitask_targets:
+			# Add hash of targets for uniqueness
+			target_str = "_".join(sorted(args.multitask_targets))
+			target_hash = str(abs(hash(target_str)) % 10000)
+			components.append(f"t{target_hash}")
+	
+	return "_".join(components) + ".pth"
 
 def get_args():
 	parser = argparse.ArgumentParser(description="GKAN - Graph Regression Example")
@@ -128,7 +173,7 @@ def graph_regression(args, return_history=False):
 	best_val_score = float("inf")
 	early_stop_counter = 0
 	best_epoch = -1
-	best_model_path = f"./experiments/graph_regression/gkan.pth"
+	best_model_path = f"./experiments/graph_regression/{generate_model_filename(args, is_multitask=False)}"
 
 	# Initialize history tracking if requested
 	train_losses = [] if return_history else None
@@ -372,7 +417,7 @@ def graph_regression_multitask(args, return_history=False):
 	best_val_metric = float('inf')  # MAE - lower is better
 	early_stop_counter = 0
 	best_epoch = -1
-	best_model_path = f"./experiments/graph_regression/gkan_multitask.pth"
+	best_model_path = f"./experiments/graph_regression/{generate_model_filename(args, is_multitask=True)}"
 
 	# Initialize history tracking if requested
 	train_losses = [] if return_history else None

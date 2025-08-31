@@ -1,4 +1,5 @@
 import argparse
+import optuna
 import json
 from email import parser
 from tqdm.auto import tqdm
@@ -234,6 +235,15 @@ def graph_regression(args, return_history=False):
 		if return_history:
 			train_losses.append(epoch_loss)
 			val_metrics.append(avg_val_mae)
+
+		# Report intermediate value for pruning (if trial is available)
+		# For regression, lower MAE is better, so report negative MAE for maximization-based pruning
+		if hasattr(args, 'trial') and args.trial is not None:
+			args.trial.report(-avg_val_mae, epoch)  # Negative because pruner expects higher is better
+			# Raise TrialPruned if the trial should be pruned
+			if args.trial.should_prune():
+				print(f"Trial pruned at epoch {epoch}")
+				raise optuna.TrialPruned()
 
 		if avg_val_mae < best_val_score:
 			best_val_score = avg_val_mae
@@ -532,6 +542,15 @@ def graph_regression_multitask(args, return_history=False):
 			avg_epoch_loss = epoch_loss / total_valid_batches if total_valid_batches > 0 else 0
 			train_losses.append(avg_epoch_loss)
 			val_metrics.append(val_metric)
+		
+		# Report intermediate value for pruning (if trial is available)
+		# For regression, lower MAE is better, so report negative MAE for maximization-based pruning
+		if hasattr(args, 'trial') and args.trial is not None:
+			args.trial.report(-val_metric, epoch)  # Negative because pruner expects higher is better
+			# Raise TrialPruned if the trial should be pruned
+			if args.trial.should_prune():
+				print(f"Trial pruned at epoch {epoch}")
+				raise optuna.TrialPruned()
 		
 		if val_metric < best_val_metric:
 			best_epoch = epoch

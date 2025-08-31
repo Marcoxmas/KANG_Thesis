@@ -2,6 +2,7 @@ import argparse
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 import json
+import optuna
 
 import torch
 import torch.nn as nn
@@ -318,6 +319,14 @@ def graph_classification(args, return_history=False):
 		if return_history:
 			train_losses.append(epoch_loss)
 			val_metrics.append(val_acc)
+		
+		# Report intermediate value for pruning (if trial is available)
+		if hasattr(args, 'trial') and args.trial is not None:
+			args.trial.report(val_acc, epoch)
+			# Raise TrialPruned if the trial should be pruned
+			if args.trial.should_prune():
+				print(f"Trial pruned at epoch {epoch}")
+				raise optuna.TrialPruned()
 		
 		if val_acc > best_val_acc:
 			best_epoch = epoch
@@ -704,6 +713,14 @@ def graph_classification_multitask(args, return_history=False):
 			avg_epoch_loss = epoch_loss / total_valid_batches if total_valid_batches > 0 else 0
 			train_losses.append(avg_epoch_loss)
 			val_metrics.append(val_metric)
+		
+		# Report intermediate value for pruning (if trial is available)
+		if hasattr(args, 'trial') and args.trial is not None:
+			args.trial.report(val_metric, epoch)
+			# Raise TrialPruned if the trial should be pruned
+			if args.trial.should_prune():
+				print(f"Trial pruned at epoch {epoch}")
+				raise optuna.TrialPruned()
 		
 		if val_metric > best_val_metric:
 			best_epoch = epoch

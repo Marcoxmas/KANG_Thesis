@@ -18,6 +18,7 @@ def get_args():
     parser.add_argument("--use_3d_geo", action="store_true", help="Use 3D geometric features for molecular graphs")
     parser.add_argument("--no_self_loops", action="store_true", help="Disable self loops in the GNN (default: use self loops)")
     parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (default: 20)")
+    parser.add_argument("--no_asha_pruning", action="store_true", help="Disable ASHA pruning (enabled by default for faster optimization)")
     # Multi-task arguments
     parser.add_argument("--multitask", action="store_true", help="Use multi-task learning")
     parser.add_argument("--multitask_assays", type=str, nargs='+', default=None, 
@@ -29,7 +30,7 @@ def get_args():
     parser.add_argument("--single_head", action="store_true", help="Use single head for multitask models")
     return parser.parse_args()
 
-def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, use_3d_geo=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None, single_head=False):
+def optuna_search(task_type, dataset_name, target_column, use_subset=True, subset_ratio=0.3, use_global_features=False, use_3d_geo=False, no_self_loops=False, n_trials=20, multitask=False, multitask_assays=None, multitask_targets=None, task_weights=None, single_head=False, no_asha_pruning=False):
     def objective(trial):
         try:
             import argparse
@@ -63,6 +64,8 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
             args.multitask_targets = multitask_targets
             args.task_weights = task_weights
             args.single_head = single_head
+            # Pass trial for ASHA pruning
+            args.trial = trial
 
             if task_type == "classification":
                 print("Running classification with:", args)
@@ -78,6 +81,9 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
                 if best_val_score is None or np.isnan(best_val_score) or np.isinf(best_val_score):
                     raise ValueError("Invalid validation score returned")
                 return best_val_score  # minimize MAE (use validation for optimization)
+        except optuna.TrialPruned:
+            # Re-raise TrialPruned to let Optuna handle it properly
+            raise
         except Exception as e:
             print(f"Trial failed with error: {e}")
             # Return a penalty value instead of raising
@@ -85,7 +91,23 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
                 return 0.0  # Worst possible accuracy
             else:
                 return float('inf')  # Worst possible MAE
-    study = optuna.create_study(direction="minimize" if task_type == "regression" else "maximize")
+    # Create study with optional ASHA pruner (enabled by default)
+    if not no_asha_pruning:
+        print("Using ASHA pruning for hyperparameter optimization (default)")
+        pruner = optuna.pruners.SuccessiveHalvingPruner(
+            min_resource=15,  # Minimum epochs before pruning
+            reduction_factor=3,  # Reduction factor for successive halving
+            min_early_stopping_rate=10  # Minimum epochs before first pruning
+        )
+        study = optuna.create_study(
+            direction="minimize" if task_type == "regression" else "maximize",
+            pruner=pruner
+        )
+    else:
+        print("ASHA pruning disabled - using standard Optuna optimization")
+        study = optuna.create_study(
+            direction="minimize" if task_type == "regression" else "maximize"
+        )
     study.optimize(objective, n_trials=n_trials)
 
     # Create unique filename for best parameters
@@ -132,6 +154,7 @@ def optuna_search(task_type, dataset_name, target_column, use_subset=True, subse
         best_params["multitask_targets"] = multitask_targets
         best_params["task_weights"] = task_weights
         best_params["single_head"] = single_head
+        best_params["no_asha_pruning"] = no_asha_pruning
         best_params["best_value"] = study.best_value
         best_params["n_trials"] = n_trials
         json.dump(best_params, f, indent=4)
@@ -217,7 +240,7 @@ if __name__ == "__main__":
     if args.multitask_targets and len(args.multitask_targets) == 1 and ',' in args.multitask_targets[0]:
         args.multitask_targets = args.multitask_targets[0].split(',')
     
-    # Pass single_head argument to optuna_search
+    # Pass single_head and ASHA pruning arguments to optuna_search
     validation_score, best_params = optuna_search(
         args.task, 
         args.dataset_name, 
@@ -232,7 +255,8 @@ if __name__ == "__main__":
         args.multitask_assays,
         args.multitask_targets,
         args.task_weights,
-        args.single_head
+        args.single_head,
+        args.no_asha_pruning
     )
     
     print(f"Hyperparameter search completed with validation score: {validation_score}")

@@ -89,9 +89,10 @@ def get_data_path():
 
 
 def get_cache_key(smiles, include_hydrogens, seed):
-    """Generate a unique cache key for a SMILES string and parameters."""
-    # Simple string-based key (much faster than MD5 hashing)
-    return f"{smiles}_{include_hydrogens}_{seed}"
+    # Use MD5 hash to avoid illegal filename characters
+    base = f"{smiles}_{include_hydrogens}_{seed}"
+    safe_hash = hashlib.md5(base.encode("utf-8")).hexdigest()
+    return safe_hash
 
 
 def load_from_cache(smiles, include_hydrogens=True, seed=42):

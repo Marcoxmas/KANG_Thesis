@@ -220,23 +220,46 @@ for file in "${matching_files[@]}"; do
     filename=$(basename "$file")
     
     # Extract dataset name
-    if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_ ]]; then
-        task_type_from_file="${BASH_REMATCH[1]}"
-        dataset="${BASH_REMATCH[2]}"
-        
-        # Add dataset to list if not already there
-        found=false
-        for d in "${datasets[@]}"; do
-            if [[ "$d" == "$dataset" ]]; then
-                found=true
-                break
+    if [[ "$TASK_TYPE" == "single" ]]; then
+        # For single task: best_params_{task_type}_{dataset}_{target}_global_{bool}_3d_{bool}_{loops}.json
+        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
+            task_type_from_file="${BASH_REMATCH[1]}"
+            dataset="${BASH_REMATCH[2]}"
+            
+            # Add dataset to list if not already there
+            found=false
+            for d in "${datasets[@]}"; do
+                if [[ "$d" == "$dataset" ]]; then
+                    found=true
+                    break
+                fi
+            done
+            if [[ "$found" == "false" ]]; then
+                datasets+=("$dataset")
             fi
-        done
-        if [[ "$found" == "false" ]]; then
-            datasets+=("$dataset")
+            
+            ((run_count++))
         fi
-        
-        ((run_count++))
+    else
+        # For multitask: best_params_{task_type}_{dataset}_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
+        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_${HEAD_TYPE}_multitask_ ]]; then
+            task_type_from_file="${BASH_REMATCH[1]}"
+            dataset="${BASH_REMATCH[2]}"
+            
+            # Add dataset to list if not already there
+            found=false
+            for d in "${datasets[@]}"; do
+                if [[ "$d" == "$dataset" ]]; then
+                    found=true
+                    break
+                fi
+            done
+            if [[ "$found" == "false" ]]; then
+                datasets+=("$dataset")
+            fi
+            
+            ((run_count++))
+        fi
     fi
 done
 
@@ -260,7 +283,8 @@ for file in "${matching_files[@]}"; do
     # Parse filename to extract information
     if [[ "$TASK_TYPE" == "single" ]]; then
         # Single task: best_params_{task_type}_{dataset}_{target}_global_{bool}_3d_{bool}_{loops}.json
-        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_([^_]+)_global_ ]]; then
+        # Note: target can contain underscores, so we need to match everything between dataset and _global_
+        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
             dataset="${BASH_REMATCH[2]}"
             target="${BASH_REMATCH[3]}"
             

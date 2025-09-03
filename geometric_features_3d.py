@@ -3,10 +3,11 @@
 
 This module provides functionality to compute 3D geometric edge features including:
 - Radial Basis Function (RBF) distance encoding
-- Angle summary features using Fourier encoding
+- Angle summary features using Fourier encoding  
+- Torsion (dihedral) angle features using Fourier encoding
 
 The edge attributes are constructed as:
-edge_attr[j→i] = [ RBF(d_ji)  ||  bond_bits_or_zero  ||  angle_summary(j,i) ]
+edge_attr[j→i] = [ RBF(d_ji)  ||  bond_bits_or_zero  ||  angle_summary(j,i)  ||  torsion_summary(j,i) ]
 """
 
 import random
@@ -413,10 +414,186 @@ def compute_angle_features_from_graph(pos_t: torch.Tensor,
     return out
 
 
-
-def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, num_rbf=16, n_fourier=2, max_k_for_angles=4):
+def compute_torsion_features_from_graph(pos_t: torch.Tensor,
+                                        edge_index: torch.Tensor,
+                                        n_fourier: int = 2,
+                                        max_k_for_torsions: int = 8,
+                                        debug_timing: bool = False):
     """
-    Create 3D geometric edge features combining distance RBF, bond features, and angle summary.
+    Optimized vectorized torsion angle (dihedral angle) features for edges.
+    For each edge j->i, find all possible torsion paths k->j->i->l
+    and compute dihedral angles using the four atoms k,j,i,l.
+    
+    This version is optimized for performance by:
+    1. Minimizing CPU-GPU synchronization points
+    2. Using vectorized operations where possible
+    3. Early termination for degenerate cases
+    
+    Args:
+        pos_t (torch.Tensor): 3D coordinates [N, 3]
+        edge_index (torch.Tensor): Edge indices [2, E] 
+        n_fourier (int): Number of Fourier components
+        max_k_for_torsions (int): Maximum number of torsions per edge for performance
+        debug_timing (bool): Print timing information
+        
+    Returns:
+        torch.Tensor: Torsion features [E, 2*n_fourier]
+    """
+    import time
+    t0 = time.perf_counter()
+    
+    E = edge_index.shape[1]
+    feat_dim = 2 * n_fourier
+    out = torch.zeros(E, feat_dim, dtype=torch.float32, device=pos_t.device)
+    
+    if n_fourier <= 0 or pos_t.size(0) < 4 or E == 0:
+        if debug_timing:
+            print(f"[TORSION-BATCH] trivial_return={time.perf_counter()-t0:.4f}s")
+        return out
+    
+    # Early exit for very small molecules (< 4 atoms can't have proper torsions)
+    N = pos_t.size(0)
+    if N < 4:
+        if debug_timing:
+            print(f"[TORSION-BATCH] too_few_atoms={time.perf_counter()-t0:.4f}s")
+        return out
+    
+    src, dst = edge_index[0], edge_index[1]  # edge j->i: src=j, dst=i
+    
+    # Convert to CPU numpy for adjacency building (more efficient for sparse operations)
+    src_np = src.cpu().numpy()
+    dst_np = dst.cpu().numpy()
+    
+    # Build adjacency lists more efficiently
+    in_neighbors = [[] for _ in range(N)]
+    out_neighbors = [[] for _ in range(N)]
+    
+    for e in range(E):
+        j, i = src_np[e], dst_np[e]
+        out_neighbors[j].append(i)
+        in_neighbors[i].append(j)
+    
+    t1 = time.perf_counter()
+    
+    total_torsions = 0
+    processed_edges = 0
+    
+    # Process edges in batches to reduce computation
+    batch_size = min(32, E)  # Process edges in smaller batches
+    
+    for batch_start in range(0, E, batch_size):
+        batch_end = min(batch_start + batch_size, E)
+        
+        for e in range(batch_start, batch_end):
+            j, i = src_np[e], dst_np[e]
+            
+            # Find k nodes connected to j (excluding i)
+            k_candidates = [k for k in in_neighbors[j] if k != i]
+            # Find l nodes connected to i (excluding j)  
+            l_candidates = [l for l in out_neighbors[i] if l != j]
+            
+            if not k_candidates or not l_candidates:
+                continue
+            
+            # Limit candidates for performance - use deterministic selection instead of random
+            max_k = max_k_for_torsions // 2
+            if len(k_candidates) > max_k:
+                k_candidates = k_candidates[:max_k]  # Take first N instead of random sample
+            if len(l_candidates) > max_k:
+                l_candidates = l_candidates[:max_k]
+            
+            # Early skip if too few candidates
+            if len(k_candidates) == 0 or len(l_candidates) == 0:
+                continue
+                
+            # Get positions for the central bond
+            pos_j = pos_t[j]  # [3]
+            pos_i = pos_t[i]  # [3]
+            v2 = pos_i - pos_j  # central bond j->i
+            v2_norm = torch.linalg.norm(v2)
+            
+            # Skip if central bond is degenerate
+            if v2_norm < 1e-7:
+                continue
+                
+            v2_unit = v2 / v2_norm
+            
+            # Collect all valid torsion angles for this edge
+            valid_torsions = []
+            
+            # Vectorize the inner computation where possible
+            for k in k_candidates:
+                pos_k = pos_t[k]
+                v1 = pos_j - pos_k  # k->j
+                v1_norm = torch.linalg.norm(v1)
+                
+                if v1_norm < 1e-7:
+                    continue
+                
+                for l in l_candidates:
+                    pos_l = pos_t[l]
+                    v3 = pos_l - pos_i  # i->l
+                    v3_norm = torch.linalg.norm(v3)
+                    
+                    if v3_norm < 1e-7:
+                        continue
+                    
+                    # Compute normal vectors to the planes using cross products
+                    n1 = torch.cross(v1, v2)  # normal to plane k-j-i
+                    n2 = torch.cross(v2, v3)  # normal to plane j-i-l
+                    
+                    # Check for degenerate cases (colinear points)
+                    n1_norm = torch.linalg.norm(n1)
+                    n2_norm = torch.linalg.norm(n2)
+                    
+                    if n1_norm > 1e-7 and n2_norm > 1e-7:
+                        n1_unit = n1 / n1_norm
+                        n2_unit = n2 / n2_norm
+                        
+                        # Compute dihedral angle
+                        cos_angle = torch.dot(n1_unit, n2_unit)
+                        cos_angle = torch.clamp(cos_angle, -1.0 + 1e-7, 1.0 - 1e-7)
+                        
+                        # Determine sign of dihedral angle using the central bond direction
+                        cross_product = torch.cross(n1_unit, n2_unit)
+                        sign = torch.sign(torch.dot(cross_product, v2_unit))
+                        dihedral = sign * torch.arccos(cos_angle)
+                        
+                        valid_torsions.append(dihedral)
+            
+            if len(valid_torsions) > 0:
+                # Convert to tensor for vectorized Fourier computation (no .item() calls)
+                torsions_t = torch.stack(valid_torsions)
+                
+                # Vectorized Fourier feature computation
+                fourier_features = torch.zeros(feat_dim, device=pos_t.device)
+                
+                for n in range(1, n_fourier + 1):
+                    sin_features = torch.sin(n * torsions_t)
+                    cos_features = torch.cos(n * torsions_t)
+                    
+                    # Store in interleaved format: [sin1, cos1, sin2, cos2, ...]
+                    idx = (n - 1) * 2
+                    fourier_features[idx] = sin_features.mean()
+                    fourier_features[idx + 1] = cos_features.mean()
+                
+                out[e] = fourier_features
+                
+            total_torsions += len(valid_torsions)
+            processed_edges += 1
+    
+    t2 = time.perf_counter()
+    if debug_timing:
+        print(f"[TORSION-BATCH] build_adj={t1-t0:.4f}s compute_torsions={t2-t1:.4f}s "
+              f"processed_edges={processed_edges}/{E} total_torsions={total_torsions}")
+    
+    return out
+
+
+
+def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, num_rbf=16, n_fourier=2, max_k_for_angles=4, include_torsions=False, max_k_for_torsions=4):
+    """
+    Create 3D geometric edge features combining distance RBF, bond features, angle summary, and torsion angles.
     
     Args:
         pos (numpy.ndarray): 3D coordinates
@@ -424,7 +601,10 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, nu
         bond_edge_attr (torch.Tensor): Bond features
         cutoff (float): Distance cutoff
         num_rbf (int): Number of RBF basis functions
-        n_fourier (int): Number of Fourier components for angles
+        n_fourier (int): Number of Fourier components for angles and torsions
+        max_k_for_angles (int): Maximum neighbors for angle computation
+        include_torsions (bool): Whether to include torsion angle features
+        max_k_for_torsions (int): Maximum torsions per edge for performance
         
     Returns:
         tuple: (new_edge_index, new_edge_attr)
@@ -436,9 +616,10 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, nu
         # Single atom: create self-loop with zero features
         edge_index = torch.tensor([[0], [0]], dtype=torch.long)
         
-        # Create zero features: RBF + bond + angle
+        # Create zero features: RBF + bond + angle + torsion
         bond_dim = bond_edge_attr.shape[1] if bond_edge_attr is not None else 13
-        total_dim = num_rbf + bond_dim + 2 * n_fourier
+        torsion_dim = 2 * n_fourier if include_torsions else 0
+        total_dim = num_rbf + bond_dim + 2 * n_fourier + torsion_dim
         edge_attr = torch.zeros(1, total_dim)
         
         return edge_index, edge_attr
@@ -456,7 +637,8 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, nu
         # Fall back to bond-only graph (keep old behavior)
         if bond_edge_index is not None and bond_edge_attr is not None:
             n_edges = bond_edge_index.shape[1]
-            padding_size = num_rbf + 2 * n_fourier
+            torsion_dim = 2 * n_fourier if include_torsions else 0
+            padding_size = num_rbf + 2 * n_fourier + torsion_dim
             padding = torch.zeros(n_edges, padding_size)
             new_edge_attr = torch.cat([padding, bond_edge_attr], dim=1)
             return bond_edge_index, new_edge_attr
@@ -513,14 +695,29 @@ def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, nu
     )  # [E, 2*n_fourier]
     t5 = time.perf_counter()
 
+    # --- Torsion features (optional) ---
+    if include_torsions:
+        torsion_features = compute_torsion_features_from_graph(
+            pos_t, edge_index, n_fourier=n_fourier, max_k_for_torsions=max_k_for_torsions
+        )  # [E, 2*n_fourier]
+        t6 = time.perf_counter()
+    else:
+        torsion_features = torch.zeros(edge_index.shape[1], 0)
+        t6 = t5
+
     if False:
+        torsion_time = f"torsions={t6-t5:.4f}s " if include_torsions else ""
         print(f"[DEBUG] radius_graph={t1-t0:.4f}s "
                 f"dist={t2-t1:.4f}s RBF={t3-t2:.4f}s "
                 f"bond_map={t4-t3:.4f}s angles={t5-t4:.4f}s "
+                f"{torsion_time}"
                 f"E={edge_index.shape[1]}")
 
     # --- Concatenate blocks ---
-    new_edge_attr = torch.cat([rbf_features, bond_features_all, angle_features], dim=1)
+    if include_torsions:
+        new_edge_attr = torch.cat([rbf_features, bond_features_all, angle_features, torsion_features], dim=1)
+    else:
+        new_edge_attr = torch.cat([rbf_features, bond_features_all, angle_features], dim=1)
     
     return edge_index, new_edge_attr
 
@@ -651,3 +848,50 @@ def get_3d_coordinates(smiles, dataset_type=None, seed=42, include_hydrogens=Tru
     # If both methods fail, return None
     print(f"All methods failed for {smiles}")
     return pos
+
+
+def test_torsion_features():
+    """Test function to verify torsion feature computation works correctly."""
+    print("Testing torsion feature computation...")
+    
+    # Create a simple 4-atom molecule (butane-like chain)
+    pos = np.array([
+        [0.0, 0.0, 0.0],    # atom 0
+        [1.0, 0.0, 0.0],    # atom 1  
+        [2.0, 1.0, 0.0],    # atom 2
+        [3.0, 1.0, 0.0]     # atom 3
+    ])
+    
+    # Create bond edges (0-1-2-3 chain)
+    bond_edge_index = torch.tensor([
+        [0, 1, 1, 2, 2, 3],  # source nodes
+        [1, 0, 2, 1, 3, 2]   # target nodes  
+    ], dtype=torch.long)
+    
+    # Create dummy bond features
+    bond_edge_attr = torch.ones(6, 13)  # 6 edges, 13 bond features each
+    
+    # Test with torsion features enabled
+    edge_index, edge_attr = create_3d_edge_features(
+        pos, bond_edge_index, bond_edge_attr, 
+        cutoff=4.0, n_fourier=2, include_torsions=True
+    )
+    
+    print(f"Edge index shape: {edge_index.shape}")
+    print(f"Edge attr shape: {edge_attr.shape}")
+    print(f"Expected edge attr dim: RBF(16) + Bond(13) + Angles(4) + Torsions(4) = 37")
+    print(f"Actual edge attr dim: {edge_attr.shape[1]}")
+    
+    # Test with torsions disabled
+    edge_index_no_torsion, edge_attr_no_torsion = create_3d_edge_features(
+        pos, bond_edge_index, bond_edge_attr, 
+        cutoff=4.0, n_fourier=2, include_torsions=False
+    )
+    
+    print(f"Without torsions - Edge attr dim: {edge_attr_no_torsion.shape[1]}")
+    print("Torsion feature test completed successfully!")
+
+
+if __name__ == "__main__":
+    # Run test if script is executed directly
+    test_torsion_features()

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Final Training Script - Choose configuration and run across all applicable datasets
-# Works with parameter files in format: best_params_{task_type}_{dataset}_{target}_global_{bool}_3d_{bool}_{loops}.json
-
+# TOXCAST Training Script - Specialized for TOXCAST dataset configurations
+# Works with parameter files in format: best_params_{task_type}_TOXCAST_{target}_global_{bool}_3d_{bool}_{loops}.json
 # Colors
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,8 +27,8 @@ print_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Required Configuration:"
-    echo "  --single-task        Run all single-task targets"
-    echo "  --multitask          Run multitask configurations"
+    echo "  --single-task        Run all single-task TOXCAST targets"
+    echo "  --multitask          Run TOXCAST multitask configurations"
     echo ""
     echo "Feature Configuration:"
     echo "  --global             Use global features (global_True)"
@@ -145,7 +145,7 @@ if [[ "$TASK_TYPE" == "multi" && -z "$HEAD_TYPE" ]]; then
 fi
 
 # Show configuration
-log "INFO" "Configuration:"
+log "INFO" "TOXCAST Training Configuration:"
 log "INFO" "  Task: $TASK_TYPE"
 if [[ "$TASK_TYPE" == "multi" ]]; then
     log "INFO" "  Head: $HEAD_TYPE"
@@ -159,8 +159,8 @@ if [[ "$DRY_RUN" == "true" ]]; then
     log "WARN" "DRY RUN MODE - No training will be executed"
 fi
 
-# Find matching parameter files
-log "INFO" "Searching for parameter files..."
+# Find matching TOXCAST parameter files
+log "INFO" "Searching for TOXCAST parameter files..."
 
 optuna_dir="experiments/optuna_search"
 if [[ ! -d "$optuna_dir" ]]; then
@@ -168,13 +168,13 @@ if [[ ! -d "$optuna_dir" ]]; then
     exit 1
 fi
 
-# Build search pattern based on task type
+# Build search pattern for TOXCAST specifically
 if [[ "$TASK_TYPE" == "single" ]]; then
     # Explicitly exclude multitask files for single task
-    pattern="best_params_*_*_*_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}.json"
+    pattern="best_params_*_TOXCAST_*_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}.json"
     # We'll filter out multitask in the loop below
 else
-    pattern="best_params_*_*_${HEAD_TYPE}_multitask_*_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}.json"
+    pattern="best_params_*_TOXCAST_${HEAD_TYPE}_multitask_*_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}.json"
 fi
 
 log "INFO" "Pattern: $pattern"
@@ -207,62 +207,58 @@ else
 fi
 
 if [[ $total_count -eq 0 ]]; then
-    log "ERROR" "No parameter files found matching:"
+    log "ERROR" "No TOXCAST parameter files found matching:"
     log "ERROR" "  Pattern: $pattern"
-    if [[ -n "$exclude_pattern" ]]; then
-        log "ERROR" "  Excluding: $exclude_pattern"
-    fi
-    log "ERROR" "Available files in $optuna_dir:"
-    ls -1 "$optuna_dir"/best_params_*.json | head -10
+    log "ERROR" "Available TOXCAST files in $optuna_dir:"
+    ls -1 "$optuna_dir"/best_params_*_TOXCAST_*.json 2>/dev/null | head -10 || log "ERROR" "No TOXCAST files found"
     exit 1
 fi
 
-log "OK" "Found $total_count matching parameter files"
+log "OK" "Found $total_count matching TOXCAST parameter files"
 
-# Extract unique datasets and organize runs
-datasets=()
+# Extract unique TOXCAST targets
+toxcast_targets=()
 run_count=0
 
 for file in "${matching_files[@]}"; do
     filename=$(basename "$file")
     
-    # Extract dataset name
+    # Extract target name from TOXCAST files
     if [[ "$TASK_TYPE" == "single" ]]; then
-        # For single task: best_params_{task_type}_{dataset}_{target}_global_{bool}_3d_{bool}_{loops}.json
-        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
+        # For single task: best_params_{task_type}_TOXCAST_{target}_global_{bool}_3d_{bool}_{loops}.json
+        if [[ "$filename" =~ best_params_(classification|regression)_TOXCAST_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
             task_type_from_file="${BASH_REMATCH[1]}"
-            dataset="${BASH_REMATCH[2]}"
+            target="${BASH_REMATCH[2]}"
             
-            # Add dataset to list if not already there
+            # Add target to list if not already there
             found=false
-            for d in "${datasets[@]}"; do
-                if [[ "$d" == "$dataset" ]]; then
+            for t in "${toxcast_targets[@]}"; do
+                if [[ "$t" == "$target" ]]; then
                     found=true
                     break
                 fi
             done
             if [[ "$found" == "false" ]]; then
-                datasets+=("$dataset")
+                toxcast_targets+=("$target")
             fi
             
             ((run_count++))
         fi
     else
-        # For multitask: best_params_{task_type}_{dataset}_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
-        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_${HEAD_TYPE}_multitask_ ]]; then
+        # For multitask: best_params_{task_type}_TOXCAST_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
+        if [[ "$filename" =~ best_params_(classification|regression)_TOXCAST_${HEAD_TYPE}_multitask_ ]]; then
             task_type_from_file="${BASH_REMATCH[1]}"
-            dataset="${BASH_REMATCH[2]}"
             
-            # Add dataset to list if not already there
+            # For multitask, we don't have individual targets, just mark as multitask
             found=false
-            for d in "${datasets[@]}"; do
-                if [[ "$d" == "$dataset" ]]; then
+            for t in "${toxcast_targets[@]}"; do
+                if [[ "$t" == "multitask" ]]; then
                     found=true
                     break
                 fi
             done
             if [[ "$found" == "false" ]]; then
-                datasets+=("$dataset")
+                toxcast_targets+=("multitask")
             fi
             
             ((run_count++))
@@ -270,7 +266,11 @@ for file in "${matching_files[@]}"; do
     fi
 done
 
-log "INFO" "Will run training for datasets: ${datasets[*]}"
+if [[ "$TASK_TYPE" == "single" ]]; then
+    log "INFO" "Will run training for TOXCAST targets: ${toxcast_targets[*]}"
+else
+    log "INFO" "Will run TOXCAST multitask training"
+fi
 log "INFO" "Total training runs: $run_count"
 
 if [[ "$DRY_RUN" == "true" ]]; then
@@ -289,13 +289,12 @@ for file in "${matching_files[@]}"; do
     
     # Parse filename to extract information
     if [[ "$TASK_TYPE" == "single" ]]; then
-        # Single task: best_params_{task_type}_{dataset}_{target}_global_{bool}_3d_{bool}_{loops}.json
-        # Note: target can contain underscores, so we need to match everything between dataset and _global_
-        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
-            dataset="${BASH_REMATCH[2]}"
-            target="${BASH_REMATCH[3]}"
+        # Single task: best_params_{task_type}_TOXCAST_{target}_global_{bool}_3d_{bool}_{loops}.json
+        # Note: target can contain underscores, so we need to match everything between TOXCAST and _global_
+        if [[ "$filename" =~ best_params_(classification|regression)_TOXCAST_(.+)_global_${GLOBAL_FEATURES}_3d_${USE_3D}_${SELF_LOOPS}\.json$ ]]; then
+            target="${BASH_REMATCH[2]}"
             
-            cmd="python train_with_best_params.py --dataset_name $dataset --target_column $target --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
+            cmd="python -u train_with_best_params.py --dataset_name TOXCAST --target_column $target --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
             
             # Add feature flags
             if [[ "$GLOBAL_FEATURES" == "True" ]]; then
@@ -311,23 +310,22 @@ for file in "${matching_files[@]}"; do
             if [[ "$DRY_RUN" == "true" ]]; then
                 echo "  $cmd"
             else
-                log "INFO" "Training $dataset - $target"
+                log "INFO" "Training TOXCAST - $target"
                 if eval "$cmd"; then
-                    log "OK" "Success: $dataset - $target"
+                    log "OK" "Success: TOXCAST - $target"
                     ((successful++))
                 else
-                    log "ERROR" "Failed: $dataset - $target"
+                    log "ERROR" "Failed: TOXCAST - $target"
                     ((failed++))
                 fi
             fi
         fi
         
     else
-        # Multitask: best_params_{task_type}_{dataset}_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
-        if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_${HEAD_TYPE}_multitask_ ]]; then
-            dataset="${BASH_REMATCH[2]}"
+        # Multitask: best_params_{task_type}_TOXCAST_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
+        if [[ "$filename" =~ best_params_(classification|regression)_TOXCAST_${HEAD_TYPE}_multitask_ ]]; then
             
-            cmd="python train_with_best_params.py --dataset_name $dataset --multitask --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
+            cmd="python -u train_with_best_params.py --dataset_name TOXCAST --multitask --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
             
             if [[ "$HEAD_TYPE" == "singlehead" ]]; then
                 cmd="$cmd --single_head"
@@ -347,12 +345,12 @@ for file in "${matching_files[@]}"; do
             if [[ "$DRY_RUN" == "true" ]]; then
                 echo "  $cmd"
             else
-                log "INFO" "Training $dataset - multitask ($HEAD_TYPE)"
+                log "INFO" "Training TOXCAST - multitask ($HEAD_TYPE)"
                 if eval "$cmd"; then
-                    log "OK" "Success: $dataset - multitask ($HEAD_TYPE)"
+                    log "OK" "Success: TOXCAST - multitask ($HEAD_TYPE)"
                     ((successful++))
                 else
-                    log "ERROR" "Failed: $dataset - multitask ($HEAD_TYPE)"
+                    log "ERROR" "Failed: TOXCAST - multitask ($HEAD_TYPE)"
                     ((failed++))
                 fi
             fi
@@ -363,7 +361,7 @@ done
 # Final summary
 if [[ "$DRY_RUN" == "false" ]]; then
     echo ""
-    log "INFO" "Training completed!"
+    log "INFO" "TOXCAST training completed!"
     log "INFO" "Results: $successful successful, $failed failed"
     
     if [[ $failed -gt 0 ]]; then

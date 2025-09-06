@@ -591,7 +591,7 @@ def compute_torsion_features_from_graph(pos_t: torch.Tensor,
 
 
 
-def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, num_rbf=16, n_fourier=2, max_k_for_angles=4, include_torsions=False, max_k_for_torsions=4):
+def create_3d_edge_features(pos, bond_edge_index, bond_edge_attr, cutoff=4.0, num_rbf=16, n_fourier=2, max_k_for_angles=4, include_torsions=True, max_k_for_torsions=4):
     """
     Create 3D geometric edge features combining distance RBF, bond features, angle summary, and torsion angles.
     

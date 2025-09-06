@@ -190,7 +190,7 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True,
         else:
             # Use real 3D geometric edge features with full computation
             edge_index, edge_attr = create_3d_edge_features(
-                pos, bond_edge_index, bond_edge_attr, cutoff, num_rbf, n_fourier, max_k_for_angles
+                pos, bond_edge_index, bond_edge_attr, cutoff, num_rbf, n_fourier, max_k_for_angles, include_torsions=True
             )
         
         if edge_index is None or edge_attr is None or edge_index.numel() == 0 or x.numel() == 0:

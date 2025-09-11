@@ -170,23 +170,24 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True,
         bond_edge_index, bond_edge_attr = bond_to_edge_index(mol, smiles=smiles)
         
         if use_fake_3d:
-            # Don't waste computation - directly create features with zero RBF and angle parts
+            # Don't waste computation - directly create features with zero RBF, angle, and torsion parts
             if bond_edge_index is None or bond_edge_attr is None:
                 # Handle molecules with no bonds
                 if mol.GetNumAtoms() == 1:
                     edge_index = torch.tensor([[0], [0]], dtype=torch.long)
-                    # Create features: zero RBF + zero bond + zero angle
-                    edge_attr = torch.zeros(1, num_rbf + 13 + 2 * n_fourier)
+                    # Create features: zero RBF + zero bond + zero angle + zero torsion
+                    edge_attr = torch.zeros(1, num_rbf + 13 + 2 * n_fourier + 2 * n_fourier)
                 else:
                     print(f"Excluded molecule with no bonds for SMILES: {smiles}")
                     return None
             else:
                 edge_index = bond_edge_index
                 n_edges = edge_index.shape[1]
-                # Create features: zero RBF + real bond + zero angle
+                # Create features: zero RBF + real bond + zero angle + zero torsion
                 zero_rbf = torch.zeros(n_edges, num_rbf)
                 zero_angle = torch.zeros(n_edges, 2 * n_fourier)
-                edge_attr = torch.cat([zero_rbf, bond_edge_attr, zero_angle], dim=1)
+                zero_torsion = torch.zeros(n_edges, 2 * n_fourier)
+                edge_attr = torch.cat([zero_rbf, bond_edge_attr, zero_angle, zero_torsion], dim=1)
         else:
             # Use real 3D geometric edge features with full computation
             edge_index, edge_attr = create_3d_edge_features(

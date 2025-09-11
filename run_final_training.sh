@@ -22,6 +22,7 @@ HEAD_TYPE=""
 GLOBAL_FEATURES=""
 USE_3D=""
 SELF_LOOPS=""
+SPECIFIC_DATASET=""
 
 print_usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -48,6 +49,7 @@ print_usage() {
     echo "  --seed N             Random seed (default: 42)"
     echo ""
     echo "Other:"
+    echo "  --dataset NAME      Run only for specific dataset"
     echo "  --dry-run           Show commands without executing"
     echo "  --help              Show this help"
     echo ""
@@ -112,6 +114,9 @@ while [[ $# -gt 0 ]]; do
         --seed)
             SEED="$2"
             shift 2 ;;
+        --dataset)
+            SPECIFIC_DATASET="$2"
+            shift 2 ;;
         --dry-run)
             DRY_RUN=true
             shift ;;
@@ -153,6 +158,9 @@ fi
 log "INFO" "  Global features: $GLOBAL_FEATURES"
 log "INFO" "  3D geometry: $USE_3D"
 log "INFO" "  Self loops: $SELF_LOOPS"
+if [[ -n "$SPECIFIC_DATASET" ]]; then
+    log "INFO" "  Specific dataset: $SPECIFIC_DATASET"
+fi
 log "INFO" "  Epochs: $EPOCHS, Patience: $PATIENCE, Seed: $SEED"
 
 if [[ "$DRY_RUN" == "true" ]]; then
@@ -233,6 +241,11 @@ for file in "${matching_files[@]}"; do
             task_type_from_file="${BASH_REMATCH[1]}"
             dataset="${BASH_REMATCH[2]}"
             
+            # Skip if specific dataset requested and this doesn't match
+            if [[ -n "$SPECIFIC_DATASET" && "$dataset" != "$SPECIFIC_DATASET" ]]; then
+                continue
+            fi
+            
             # Add dataset to list if not already there
             found=false
             for d in "${datasets[@]}"; do
@@ -252,6 +265,11 @@ for file in "${matching_files[@]}"; do
         if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_${HEAD_TYPE}_multitask_ ]]; then
             task_type_from_file="${BASH_REMATCH[1]}"
             dataset="${BASH_REMATCH[2]}"
+            
+            # Skip if specific dataset requested and this doesn't match
+            if [[ -n "$SPECIFIC_DATASET" && "$dataset" != "$SPECIFIC_DATASET" ]]; then
+                continue
+            fi
             
             # Add dataset to list if not already there
             found=false
@@ -295,6 +313,11 @@ for file in "${matching_files[@]}"; do
             dataset="${BASH_REMATCH[2]}"
             target="${BASH_REMATCH[3]}"
             
+            # Skip if specific dataset requested and this doesn't match
+            if [[ -n "$SPECIFIC_DATASET" && "$dataset" != "$SPECIFIC_DATASET" ]]; then
+                continue
+            fi
+            
             cmd="python train_with_best_params.py --dataset_name $dataset --target_column $target --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
             
             # Add feature flags
@@ -326,6 +349,11 @@ for file in "${matching_files[@]}"; do
         # Multitask: best_params_{task_type}_{dataset}_{head_type}_multitask_*_global_{bool}_3d_{bool}_{loops}.json
         if [[ "$filename" =~ best_params_(classification|regression)_([^_]+)_${HEAD_TYPE}_multitask_ ]]; then
             dataset="${BASH_REMATCH[2]}"
+            
+            # Skip if specific dataset requested and this doesn't match
+            if [[ -n "$SPECIFIC_DATASET" && "$dataset" != "$SPECIFIC_DATASET" ]]; then
+                continue
+            fi
             
             cmd="python train_with_best_params.py --dataset_name $dataset --multitask --epochs $EPOCHS --patience $PATIENCE --seed $SEED"
             

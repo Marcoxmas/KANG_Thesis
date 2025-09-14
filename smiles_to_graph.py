@@ -170,24 +170,54 @@ def smiles_to_data(smiles: str, labels=None, include_hydrogens: bool = True,
         bond_edge_index, bond_edge_attr = bond_to_edge_index(mol, smiles=smiles)
         
         if use_fake_3d:
-            # Don't waste computation - directly create features with zero RBF, angle, and torsion parts
-            if bond_edge_index is None or bond_edge_attr is None:
-                # Handle molecules with no bonds
-                if mol.GetNumAtoms() == 1:
-                    edge_index = torch.tensor([[0], [0]], dtype=torch.long)
-                    # Create features: zero RBF + zero bond + zero angle + zero torsion
-                    edge_attr = torch.zeros(1, num_rbf + 13 + 2 * n_fourier + 2 * n_fourier)
+            # Manually create radius graph with zero features to avoid expensive computation
+            from torch_cluster import radius_graph
+            pos_t = torch.as_tensor(pos, dtype=torch.float32)
+            edge_index = radius_graph(pos_t, r=cutoff, loop=False, max_num_neighbors=32)
+            
+            if edge_index.numel() == 0:
+                # No edges within cutoff, fall back to bond edges if available
+                if bond_edge_index is not None and bond_edge_attr is not None:
+                    edge_index = bond_edge_index
+                    n_edges = edge_index.shape[1]
+                    # Create features: zero RBF + real bond + zero angle + zero torsion
+                    zero_rbf = torch.zeros(n_edges, num_rbf)
+                    zero_angle = torch.zeros(n_edges, 2 * n_fourier)
+                    zero_torsion = torch.zeros(n_edges, 2 * n_fourier)
+                    edge_attr = torch.cat([zero_rbf, bond_edge_attr, zero_angle, zero_torsion], dim=1)
                 else:
-                    print(f"Excluded molecule with no bonds for SMILES: {smiles}")
-                    return None
+                    # Single atom case
+                    edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+                    bond_dim = bond_edge_attr.shape[1] if bond_edge_attr is not None else 13
+                    total_dim = num_rbf + bond_dim + 2 * n_fourier + 2 * n_fourier
+                    edge_attr = torch.zeros(1, total_dim)
             else:
-                edge_index = bond_edge_index
+                # Create radius graph features efficiently
                 n_edges = edge_index.shape[1]
-                # Create features: zero RBF + real bond + zero angle + zero torsion
+                bond_dim = bond_edge_attr.shape[1] if bond_edge_attr is not None else 13
+                
+                # All features are zeros except bond features where applicable
                 zero_rbf = torch.zeros(n_edges, num_rbf)
                 zero_angle = torch.zeros(n_edges, 2 * n_fourier)
                 zero_torsion = torch.zeros(n_edges, 2 * n_fourier)
-                edge_attr = torch.cat([zero_rbf, bond_edge_attr, zero_angle, zero_torsion], dim=1)
+                
+                # Map bond features to radius graph edges
+                bond_features_all = torch.zeros(n_edges, bond_dim)
+                if bond_edge_index is not None and bond_edge_attr is not None:
+                    bond_features_dict = {}
+                    for k in range(bond_edge_index.shape[1]):
+                        i_k = bond_edge_index[0, k].item()
+                        j_k = bond_edge_index[1, k].item()
+                        bond_features_dict[(i_k, j_k)] = bond_edge_attr[k]
+                    
+                    # Fill bond features for radius graph edges
+                    for e in range(n_edges):
+                        j = edge_index[0, e].item()
+                        i = edge_index[1, e].item()
+                        if (j, i) in bond_features_dict:
+                            bond_features_all[e] = bond_features_dict[(j, i)]
+                
+                edge_attr = torch.cat([zero_rbf, bond_features_all, zero_angle, zero_torsion], dim=1)
         else:
             # Use real 3D geometric edge features with full computation
             edge_index, edge_attr = create_3d_edge_features(
